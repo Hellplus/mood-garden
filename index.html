@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mood Garden 情绪花园</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="garden">
+    <section class="hero" aria-labelledby="page-title">
+      <p class="eyebrow">Today, plant gently.</p>
+      <h1 id="page-title">Mood Garden 情绪花园</h1>
+      <p class="intro">选一种今天的情绪，写下一句话，把它种成一朵属于今天的花。</p>
+    </section>
+
+    <section class="panel" aria-labelledby="form-title">
+      <h2 id="form-title">今天的花</h2>
+
+      <div class="field">
+        <span class="label">选择情绪</span>
+        <div class="mood-options" id="moodOptions">
+          <button class="mood-button active" type="button" data-mood="happy">开心</button>
+          <button class="mood-button" type="button" data-mood="calm">平静</button>
+          <button class="mood-button" type="button" data-mood="anxious">焦虑</button>
+          <button class="mood-button" type="button" data-mood="tired">疲惫</button>
+          <button class="mood-button" type="button" data-mood="excited">兴奋</button>
+        </div>
+      </div>
+
+      <label class="field" for="noteInput">
+        <span class="label">一句今天的心情</span>
+        <textarea id="noteInput" rows="3" maxlength="80" placeholder="例如：今天慢慢来，也很好。"></textarea>
+      </label>
+
+      <button class="plant-button" id="plantButton" type="button">种下一朵花</button>
+      <p class="hint" id="message" aria-live="polite"></p>
+    </section>
+
+    <section class="stats" aria-labelledby="stats-title">
+      <div class="section-heading">
+        <h2 id="stats-title">情绪统计</h2>
+        <span id="totalCount">共 0 朵花</span>
+      </div>
+      <div class="stats-list" id="statsList"></div>
+    </section>
+
+    <section class="history" aria-labelledby="history-title">
+      <div class="section-heading">
+        <h2 id="history-title">我的花园</h2>
+        <div class="history-actions">
+          <span id="flowerCount">0 朵花</span>
+          <button class="clear-button" id="clearButton" type="button">清空花园</button>
+        </div>
+      </div>
+      <div class="flower-list" id="flowerList"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
