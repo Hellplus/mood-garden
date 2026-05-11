@@ -106,7 +106,7 @@ plantButton.addEventListener("click", () => {
   }
 
   const flower = {
-    id: Date.now(),
+    id: createFlowerId(),
     mood: selectedMood,
     note,
     flowerQuote: getRandomFlowerQuote(selectedMood),
@@ -254,6 +254,10 @@ function getRandomFlowerQuote(mood) {
 function getRandomItem(items) {
   const randomIndex = Math.floor(Math.random() * items.length);
   return items[randomIndex];
+}
+
+function createFlowerId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function formatDate(date) {
