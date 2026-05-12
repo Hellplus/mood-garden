@@ -74,6 +74,7 @@ const flowerList = document.querySelector("#flowerList");
 const flowerCount = document.querySelector("#flowerCount");
 const totalCount = document.querySelector("#totalCount");
 const statsList = document.querySelector("#statsList");
+const gardenNote = document.querySelector("#gardenNote");
 const message = document.querySelector("#message");
 
 let selectedMood = "happy";
@@ -197,7 +198,7 @@ function renderFlowers() {
   if (flowers.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
-    empty.textContent = "花园还是空的。选一种情绪，种下今天的第一朵花。";
+    empty.textContent = "这里还没有花。选一种今天的情绪，写下一句话，慢慢种下第一朵吧。";
     flowerList.appendChild(empty);
     return;
   }
@@ -230,6 +231,7 @@ function renderStats() {
 
   totalCount.textContent = `共 ${savedFlowers.length} 朵花`;
   statsList.innerHTML = "";
+  gardenNote.textContent = getGardenNote(savedFlowers);
 
   Object.keys(moodMap).forEach((moodKey) => {
     const mood = moodMap[moodKey];
@@ -252,8 +254,23 @@ function getRandomFlowerQuote(mood) {
 }
 
 function getRandomItem(items) {
+  if (items.length === 0) {
+    return "";
+  }
+
   const randomIndex = Math.floor(Math.random() * items.length);
   return items[randomIndex];
+}
+
+function getGardenNote(savedFlowers) {
+  if (savedFlowers.length === 0) {
+    return "花园还在等第一朵花。今天的一点点心情，也值得被温柔记录。";
+  }
+
+  const latestFlower = savedFlowers[0];
+  const mood = moodMap[latestFlower.mood] || moodMap.happy;
+
+  return `最近一朵花是「${mood.name}」。愿这座小花园慢慢接住你的每一天。`;
 }
 
 function createFlowerId() {
