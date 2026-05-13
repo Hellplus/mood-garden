@@ -109,6 +109,9 @@ let flowers = loadFlowers();
 let editingFlowerId = "";
 let browseState = { ...defaultBrowseState };
 let toastTimer = 0;
+let listAnimationTimer = 0;
+let newFlowerId = "";
+let updatedFlowerId = "";
 const addedMissingData = addMissingFlowerData();
 
 if (addedMissingData) {
@@ -152,6 +155,7 @@ plantButton.addEventListener("click", () => {
   };
 
   flowers.unshift(flower);
+  newFlowerId = flower.id;
   const saved = saveFlowers();
   renderFlowers();
   renderStats();
@@ -168,7 +172,7 @@ plantButton.addEventListener("click", () => {
 moodFilter.addEventListener("change", () => {
   browseState.mood = moodFilter.value;
   editingFlowerId = "";
-  renderFlowers();
+  renderFlowers({ animateList: true });
 });
 
 searchInput.addEventListener("input", () => {
@@ -180,7 +184,7 @@ searchInput.addEventListener("input", () => {
 sortSelect.addEventListener("change", () => {
   browseState.sort = sortSelect.value;
   editingFlowerId = "";
-  renderFlowers();
+  renderFlowers({ animateList: true });
 });
 
 resetFiltersButton.addEventListener("click", () => {
@@ -271,7 +275,7 @@ flowerList.addEventListener("click", (event) => {
   }
 
   if (deleteButton) {
-    deleteFlower(deleteButton.dataset.id);
+    deleteFlower(deleteButton.dataset.id, deleteButton.closest(".flower-card"));
   }
 });
 
@@ -450,12 +454,23 @@ function resetBrowseState() {
   searchInput.value = defaultBrowseState.keyword;
   sortSelect.value = defaultBrowseState.sort;
   editingFlowerId = "";
-  renderFlowers();
+  renderFlowers({ animateList: true });
   showMessage("已经恢复显示全部花朵。", "success");
 }
 
-function renderFlowers() {
+function renderFlowers(options = {}) {
   const visibleFlowers = getVisibleFlowers();
+
+  if (options.animateList) {
+    flowerList.classList.remove("is-refreshing");
+    void flowerList.offsetWidth;
+    flowerList.classList.add("is-refreshing");
+
+    clearTimeout(listAnimationTimer);
+    listAnimationTimer = setTimeout(() => {
+      flowerList.classList.remove("is-refreshing");
+    }, 320);
+  }
 
   flowerList.innerHTML = "";
   flowerCount.textContent = `${flowers.length} 朵花`;
@@ -469,6 +484,8 @@ function renderFlowers() {
       "花园还在等第一朵花",
       "选一种今天的情绪，写下一句话，慢慢种下属于你的第一朵。"
     ));
+    newFlowerId = "";
+    updatedFlowerId = "";
     return;
   }
 
@@ -479,6 +496,8 @@ function renderFlowers() {
       "没有找到符合条件的花",
       "试试换个情绪、关键词，或者点一下重置筛选，让花园重新展开。"
     ));
+    newFlowerId = "";
+    updatedFlowerId = "";
     return;
   }
 
@@ -487,9 +506,19 @@ function renderFlowers() {
     const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
     const isEditing = flower.id === editingFlowerId;
     const card = document.createElement("article");
+    const cardClasses = ["flower-card", mood.className];
 
-    card.className = `flower-card ${mood.className}`;
+    if (flower.id === newFlowerId) {
+      cardClasses.push("is-new");
+    }
+
+    if (flower.id === updatedFlowerId) {
+      cardClasses.push("is-updated");
+    }
+
+    card.className = cardClasses.join(" ");
     card.dataset.emoji = mood.emoji;
+    card.dataset.id = flower.id;
     card.innerHTML = `
       <div class="flower-top">
         <span class="flower-emoji" aria-hidden="true">${mood.emoji}</span>
@@ -529,6 +558,9 @@ function renderFlowers() {
     card.querySelector(".flower-copy").textContent = flowerQuote;
     flowerList.appendChild(card);
   });
+
+  newFlowerId = "";
+  updatedFlowerId = "";
 }
 
 function createEmptyState(type, icon, title, text) {
@@ -594,6 +626,7 @@ function saveEditedFlower(flowerId) {
 
   flower.note = trimmedNote;
   editingFlowerId = "";
+  updatedFlowerId = flowerId;
   const saved = saveFlowers();
 
   renderFlowers();
@@ -606,7 +639,7 @@ function saveEditedFlower(flowerId) {
   );
 }
 
-function deleteFlower(flowerId) {
+function deleteFlower(flowerId, flowerCard) {
   const shouldDelete = confirm("确定要删除这一朵花吗？这个操作不能撤销。");
 
   if (!shouldDelete) {
@@ -614,6 +647,27 @@ function deleteFlower(flowerId) {
     return;
   }
 
+  if (flowerCard && !shouldReduceMotion()) {
+    let deleted = false;
+    const finishDelete = () => {
+      if (deleted) {
+        return;
+      }
+
+      deleted = true;
+      removeFlowerById(flowerId);
+    };
+
+    flowerCard.classList.add("is-leaving");
+    flowerCard.addEventListener("animationend", finishDelete, { once: true });
+    setTimeout(finishDelete, 340);
+    return;
+  }
+
+  removeFlowerById(flowerId);
+}
+
+function removeFlowerById(flowerId) {
   flowers = flowers.filter((flower) => flower.id !== flowerId);
   const saved = saveFlowers();
 
@@ -625,6 +679,12 @@ function deleteFlower(flowerId) {
       : "页面里的花已删除，但浏览器暂时没能保存这次变化。",
     saved ? "success" : "error"
   );
+}
+
+function shouldReduceMotion() {
+  return typeof window !== "undefined"
+    && window.matchMedia
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 function renderStats() {
