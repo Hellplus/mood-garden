@@ -89,6 +89,16 @@
           <span id="flowerCount">0 朵花</span>
           <div class="history-buttons">
             <button class="export-button" id="exportButton" type="button">导出日记</button>
+            <button class="backup-button" id="exportBackupButton" type="button">导出备份</button>
+            <label class="import-mode-field" for="importModeSelect">
+              <span>导入方式</span>
+              <select class="import-mode-select" id="importModeSelect" aria-label="导入方式">
+                <option value="merge">合并导入</option>
+                <option value="replace">覆盖导入</option>
+              </select>
+            </label>
+            <label class="import-backup-label" for="importBackupInput">导入备份</label>
+            <input id="importBackupInput" type="file" accept="application/json,.json" hidden>
             <button class="clear-button" id="clearButton" type="button">清空花园</button>
           </div>
         </div>
