@@ -1,3 +1,4 @@
+/* Design tokens */
 :root {
   --page-bg:
     radial-gradient(circle at 12% 12%, rgba(255, 215, 181, 0.58), transparent 30%),
@@ -29,6 +30,7 @@
   --toast-color: #fffdf8;
 }
 
+/* Base */
 * {
   box-sizing: border-box;
 }
@@ -136,6 +138,7 @@ p {
   z-index: 1;
 }
 
+/* Page sections */
 .hero,
 .entry-panel,
 .overview-panel,
@@ -165,6 +168,7 @@ p {
   animation-delay: 210ms;
 }
 
+/* Hero */
 .hero {
   isolation: isolate;
   display: grid;
@@ -609,6 +613,7 @@ p {
   animation: heroCopyRefresh 420ms ease both;
 }
 
+/* Entry form and overview */
 .entry-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
@@ -618,6 +623,7 @@ p {
 
 .panel,
 .stats,
+/* Analysis */
 .analysis-panel,
 .browse-panel,
 .history {
@@ -1102,6 +1108,7 @@ input[type="search"]:focus {
   gap: 8px;
 }
 
+/* Browse tools and data actions */
 .reset-filters-button,
 .export-button,
 .backup-button,
@@ -1226,6 +1233,7 @@ input[type="search"]:focus {
   box-shadow: none;
 }
 
+/* Flower cards */
 .flower-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -1481,6 +1489,7 @@ input[type="search"]:focus {
     repeating-linear-gradient(135deg, rgba(110, 132, 111, 0.08) 0 1px, transparent 1px 14px);
 }
 
+/* Toast */
 .toast {
   position: fixed;
   left: 50%;
@@ -1518,6 +1527,7 @@ input[type="search"]:focus {
   background: var(--toast-bg);
 }
 
+/* Animations */
 @keyframes flowerIn {
   from {
     opacity: 0;
@@ -2236,6 +2246,7 @@ input[type="search"]:focus {
   background: linear-gradient(145deg, #ffd1c3, #ffe4a8);
 }
 
+/* Themes */
 body[data-theme="dark"] {
   --page-bg:
     radial-gradient(circle at 12% 12%, rgba(91, 111, 99, 0.48), transparent 30%),
@@ -2420,6 +2431,7 @@ body[data-theme="pink"] .mood-excited {
   background: linear-gradient(145deg, #ffc7d4, #ffe0ac);
 }
 
+/* Responsive layout */
 @media (max-width: 900px) {
   .hero,
   .entry-layout {
@@ -2591,6 +2603,7 @@ body[data-theme="pink"] .mood-excited {
   }
 }
 
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

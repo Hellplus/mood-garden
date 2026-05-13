@@ -1,3 +1,5 @@
+// Mood Garden uses a few plain objects as its tiny design system.
+// When adding a new mood, keep these mood-based configs in sync.
 const moodMap = {
   happy: {
     name: "开心",
@@ -198,6 +200,7 @@ const flowerQuoteMap = {
   ]
 };
 
+// Local storage keys and small safety limits. Keep these keys stable so old gardens still open.
 const storageKey = "moodGardenFlowers";
 const themeStorageKey = "moodGardenTheme";
 const maxMoodIconLength = 4;
@@ -208,6 +211,7 @@ const themeNames = {
   pink: "治愈粉"
 };
 
+// DOM references.
 const moodOptions = document.querySelector("#moodOptions");
 const noteInput = document.querySelector("#noteInput");
 const plantButton = document.querySelector("#plantButton");
@@ -239,6 +243,7 @@ const heroMoodIcon = document.querySelector(".journal-flower");
 const heroTitle = document.querySelector(".journal-title");
 const heroSubtitle = document.querySelector(".journal-subtitle");
 
+// App state.
 const defaultBrowseState = {
   mood: "all",
   keyword: "",
@@ -265,9 +270,8 @@ if (addedMissingData) {
 
 applyTheme(loadTheme());
 initHeroMoodIcon();
-renderFlowers();
-renderStats();
-renderAnalysis();
+setActiveMoodButton(selectedMood);
+updateAllViews();
 
 moodOptions.addEventListener("click", (event) => {
   const button = event.target.closest(".mood-button");
@@ -277,10 +281,7 @@ moodOptions.addEventListener("click", (event) => {
   }
 
   selectedMood = button.dataset.mood;
-
-  document.querySelectorAll(".mood-button").forEach((item) => {
-    item.classList.toggle("active", item === button);
-  });
+  setActiveMoodButton(selectedMood);
 });
 
 plantButton.addEventListener("click", () => {
@@ -306,9 +307,7 @@ plantButton.addEventListener("click", () => {
   flowers.unshift(flower);
   newFlowerId = flower.id;
   const saved = saveFlowers();
-  renderFlowers();
-  renderStats();
-  renderAnalysis({ animate: true });
+  updateAllViews({ animateAnalysis: true });
   updateHeroContent(moodIcon, selectedMood);
 
   noteInput.value = "";
@@ -394,9 +393,7 @@ clearButton.addEventListener("click", () => {
   flowers = [];
   editingFlowerId = "";
   const cleared = clearSavedFlowers();
-  renderFlowers();
-  renderStats();
-  renderAnalysis({ animate: true });
+  updateAllViews({ animateAnalysis: true });
   showMessage(
     cleared
       ? "花园已经清空。什么时候想重新开始，都可以再种下一朵花。"
@@ -483,6 +480,28 @@ function showToast(text, type = "info") {
   }, 2600);
 }
 
+// Rendering entry point: use this after data changes so all views stay in sync.
+function updateAllViews(options = {}) {
+  renderFlowers({
+    animateList: Boolean(options.animateList)
+  });
+  renderStats();
+  renderAnalysis({
+    animate: Boolean(options.animateAnalysis)
+  });
+}
+
+// UI state helpers.
+function setActiveMoodButton(moodKey) {
+  document.querySelectorAll(".mood-button").forEach((button) => {
+    const isActive = button.dataset.mood === moodKey;
+
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
+// Local storage helpers for flower records.
 function loadFlowers() {
   let saved = "";
 
@@ -526,6 +545,7 @@ function clearSavedFlowers() {
   }
 }
 
+// Old data compatibility. Do not remove: older records may miss id or createdAt.
 function addMissingFlowerData() {
   let changed = false;
   const now = Date.now();
@@ -545,6 +565,7 @@ function addMissingFlowerData() {
   return changed;
 }
 
+// Browse, search, and sort helpers.
 function getVisibleFlowers() {
   let visibleFlowers = [...flowers];
 
@@ -610,6 +631,7 @@ function resetBrowseState() {
   showMessage("已经恢复显示全部花朵。", "success");
 }
 
+// Flower list rendering and card actions.
 function renderFlowers(options = {}) {
   const visibleFlowers = getVisibleFlowers();
 
@@ -786,9 +808,7 @@ function saveEditedFlower(flowerId) {
   updatedFlowerId = flowerId;
   const saved = saveFlowers();
 
-  renderFlowers();
-  renderStats();
-  renderAnalysis({ animate: true });
+  updateAllViews({ animateAnalysis: true });
   showMessage(
     saved
       ? "这朵花的心情文字已经更新好了。"
@@ -829,9 +849,7 @@ function removeFlowerById(flowerId) {
   flowers = flowers.filter((flower) => flower.id !== flowerId);
   const saved = saveFlowers();
 
-  renderFlowers();
-  renderStats();
-  renderAnalysis({ animate: true });
+  updateAllViews({ animateAnalysis: true });
   showMessage(
     saved
       ? "已经删除这一朵花，花园记录也同步更新了。"
@@ -846,6 +864,7 @@ function shouldReduceMotion() {
     && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+// Overview statistics.
 function renderStats() {
   const savedFlowers = loadFlowers();
 
@@ -869,6 +888,7 @@ function renderStats() {
   });
 }
 
+// V1.4 data analysis.
 function renderAnalysis(options = {}) {
   const savedFlowers = loadFlowers();
   const recentDays = getRecentSevenDays();
@@ -1222,6 +1242,7 @@ function formatShortDate(date) {
   return `${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
+// TXT diary export and JSON backup import/export.
 function createDiaryText(savedFlowers) {
   const lines = [
     "Mood Garden 情绪花园日记",
@@ -1477,9 +1498,7 @@ function importBackupRecords(importedFlowers, importMode) {
   editingFlowerId = "";
   const saved = saveFlowers();
 
-  renderFlowers();
-  renderStats();
-  renderAnalysis({ animate: true });
+  updateAllViews({ animateAnalysis: true });
   showMessage(
     saved
       ? "备份导入成功，花园已经刷新好了。"
@@ -1517,6 +1536,7 @@ function downloadTextFile(text, fileName, fileType = "text/plain;charset=utf-8")
   URL.revokeObjectURL(fileUrl);
 }
 
+// Hero, mood icon, and copy helpers.
 function initHeroMoodIcon() {
   const moodKeys = getHeroMoodKeys();
   const randomMood = getRandomItem(moodKeys) || "happy";

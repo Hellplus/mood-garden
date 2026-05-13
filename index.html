@@ -50,12 +50,12 @@
 
         <div class="field">
           <span class="label">选择情绪</span>
-          <div class="mood-options" id="moodOptions">
-            <button class="mood-button active" type="button" data-mood="happy">开心</button>
-            <button class="mood-button" type="button" data-mood="calm">平静</button>
-            <button class="mood-button" type="button" data-mood="anxious">焦虑</button>
-            <button class="mood-button" type="button" data-mood="tired">疲惫</button>
-            <button class="mood-button" type="button" data-mood="excited">兴奋</button>
+          <div class="mood-options" id="moodOptions" role="group" aria-label="选择今天的情绪">
+            <button class="mood-button active" type="button" data-mood="happy" aria-pressed="true">开心</button>
+            <button class="mood-button" type="button" data-mood="calm" aria-pressed="false">平静</button>
+            <button class="mood-button" type="button" data-mood="anxious" aria-pressed="false">焦虑</button>
+            <button class="mood-button" type="button" data-mood="tired" aria-pressed="false">疲惫</button>
+            <button class="mood-button" type="button" data-mood="excited" aria-pressed="false">兴奋</button>
           </div>
         </div>
 
@@ -65,7 +65,7 @@
         </label>
 
         <button class="plant-button" id="plantButton" type="button">种下一朵花</button>
-        <p class="hint" id="message"></p>
+        <p class="hint" id="message" aria-live="polite"></p>
       </section>
 
       <section class="stats glass-card overview-panel" aria-labelledby="stats-title">
@@ -179,7 +179,7 @@
             </select>
           </label>
           <label class="import-backup-label" for="importBackupInput">导入备份</label>
-          <input id="importBackupInput" type="file" accept="application/json,.json" hidden>
+          <input id="importBackupInput" type="file" accept="application/json,.json" aria-label="选择 JSON 备份文件" hidden>
         </div>
 
         <div class="action-group action-group-danger">
