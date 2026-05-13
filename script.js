@@ -39,6 +39,39 @@ const moodIconMap = {
   excited: ["🌺", "🌈", "🔥", "🎈", "💫"]
 };
 
+const ICON_ANIMATION_MAP = {
+  "🌻": "bloom",
+  "🌼": "bloom",
+  "🌺": "bloom",
+  "☀️": "sun",
+  "🌞": "sun",
+  "✨": "twinkle",
+  "⭐": "twinkle",
+  "💫": "twinkle",
+  "🌈": "rainbow",
+  "🌿": "leaf",
+  "🍃": "leaf",
+  "🌱": "grow",
+  "🪴": "grow",
+  "🫧": "bubble",
+  "🌧️": "rain",
+  "☁️": "cloud",
+  "🌫️": "cloud",
+  "💧": "drop",
+  "🌀": "swirl",
+  "🌙": "moon",
+  "🌌": "night",
+  "🕯️": "candle",
+  "💤": "sleep",
+  "🔥": "fire",
+  "🎈": "balloon",
+  "🔎": "search",
+  "🦋": "butterfly",
+  "🚀": "rocket",
+  "☕": "sleep",
+  "😊": "bounce"
+};
+
 const HERO_COPY_POOLS = {
   happy: [
     {
@@ -167,6 +200,7 @@ const flowerQuoteMap = {
 
 const storageKey = "moodGardenFlowers";
 const themeStorageKey = "moodGardenTheme";
+const maxMoodIconLength = 4;
 const validThemes = ["light", "dark", "pink"];
 const themeNames = {
   light: "浅色",
@@ -623,6 +657,7 @@ function renderFlowers(options = {}) {
     const moodKey = moodMap[flower.mood] ? flower.mood : "happy";
     const mood = moodMap[moodKey];
     const moodIcon = getFlowerMoodIcon(flower, mood);
+    const iconAnimationClass = getIconAnimationClass(moodIcon, moodKey);
     const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
     const isEditing = flower.id === editingFlowerId;
     const card = document.createElement("article");
@@ -641,7 +676,7 @@ function renderFlowers(options = {}) {
     card.dataset.id = flower.id;
     card.innerHTML = `
       <div class="flower-top">
-        <span class="flower-emoji mood-icon mood-icon-${moodKey}" aria-hidden="true">${moodIcon}</span>
+        <span class="flower-emoji mood-icon mood-icon-${moodKey} ${iconAnimationClass}" aria-hidden="true"></span>
         <span class="flower-date">创建于 ${flower.date || "未知日期"}</span>
       </div>
       <div class="flower-body">
@@ -664,6 +699,7 @@ function renderFlowers(options = {}) {
           `}
       </div>
     `;
+    card.querySelector(".flower-emoji").textContent = moodIcon;
 
     if (isEditing) {
       card.querySelector(".flower-edit-input").value = flower.note || "";
@@ -688,10 +724,11 @@ function createEmptyState(type, icon, title, text) {
   const iconElement = document.createElement("span");
   const titleElement = document.createElement("strong");
   const textElement = document.createElement("span");
+  const safeIcon = getSafeMoodIconText(icon, "🌱");
 
   empty.className = `empty empty-${type}`;
-  iconElement.className = "empty-icon";
-  iconElement.textContent = icon;
+  iconElement.className = `empty-icon ${getIconAnimationClass(safeIcon)} icon-animate-light`;
+  iconElement.textContent = safeIcon;
   titleElement.textContent = title;
   textElement.textContent = text;
 
@@ -820,10 +857,11 @@ function renderStats() {
     const mood = moodMap[moodKey];
     const count = savedFlowers.filter((flower) => flower.mood === moodKey).length;
     const item = document.createElement("div");
+    const iconHtml = getAnimatedIconHtml(mood.emoji, moodKey, "stats-icon icon-animate-light");
 
     item.className = "stats-item";
     item.innerHTML = `
-      <span class="stats-mood">${mood.emoji} ${mood.name}</span>
+      <span class="stats-mood">${iconHtml} ${mood.name}</span>
       <span class="stats-number">${count}</span>
     `;
 
@@ -1015,19 +1053,26 @@ function renderMoodDistribution(moodCounts, totalCountValue) {
     const ratio = totalCountValue === 0 ? 0 : Math.round((count / totalCountValue) * 100);
     const item = document.createElement("div");
     const label = document.createElement("span");
+    const icon = document.createElement("span");
+    const labelText = document.createElement("span");
     const ratioTrack = document.createElement("div");
     const ratioFill = document.createElement("span");
     const countText = document.createElement("span");
 
     item.className = "mood-distribution-item";
     label.className = "mood-distribution-label";
-    label.textContent = `${mood.emoji} ${mood.name}`;
+    icon.className = `${getIconAnimationClass(mood.emoji, moodKey)} distribution-icon icon-animate-light`;
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = mood.emoji;
+    labelText.textContent = mood.name;
     ratioTrack.className = "mood-ratio";
     ratioFill.className = "mood-ratio-fill";
     ratioFill.style.setProperty("--ratio-width", `${ratio}%`);
     countText.className = "mood-distribution-count";
     countText.textContent = `${count} 朵`;
 
+    label.appendChild(icon);
+    label.appendChild(labelText);
     ratioTrack.appendChild(ratioFill);
     item.appendChild(label);
     item.appendChild(ratioTrack);
@@ -1048,11 +1093,13 @@ function renderTopMood(topMoods, totalCountValue) {
   const big = document.createElement("strong");
   const text = document.createElement("p");
   const moodNames = topMoods.map((item) => item.mood.name).join("、");
-  const moodEmojis = topMoods.map((item) => item.mood.emoji).join(" ");
+  const moodEmojis = topMoods.map((item) => {
+    return getAnimatedIconHtml(item.mood.emoji, item.key, "top-mood-icon icon-animate-light");
+  }).join(" ");
 
   box.className = "top-mood-box";
   big.className = "analysis-big";
-  big.textContent = `${moodEmojis} ${moodNames}`;
+  big.innerHTML = `${moodEmojis} ${moodNames}`;
   text.className = "analysis-text";
   text.textContent = topMoods.length > 1
     ? `这些情绪并列出现最多，各有 ${topMoods[0].count} 朵。`
@@ -1491,10 +1538,11 @@ function updateHeroMoodIcon(icon, moodKey) {
   }
 
   const safeMoodKey = moodMap[moodKey] ? moodKey : "happy";
+  const displayIcon = getSafeMoodIconText(icon, moodMap[safeMoodKey].emoji);
 
   removeMoodIconClasses(heroMoodIcon);
-  heroMoodIcon.classList.add("mood-icon", `mood-icon-${safeMoodKey}`);
-  heroMoodIcon.textContent = icon || moodMap[safeMoodKey].emoji;
+  heroMoodIcon.classList.add("mood-icon", `mood-icon-${safeMoodKey}`, getIconAnimationClass(displayIcon, safeMoodKey));
+  heroMoodIcon.textContent = displayIcon;
 }
 
 function updateHeroCopy(moodKey) {
@@ -1521,6 +1569,10 @@ function removeMoodIconClasses(element) {
   Object.keys(moodMap).forEach((moodKey) => {
     element.classList.remove(`mood-icon-${moodKey}`);
   });
+  Object.values(ICON_ANIMATION_MAP).forEach((animationName) => {
+    element.classList.remove(`icon-animate-${animationName}`);
+  });
+  element.classList.remove("icon-animate-soft");
 }
 
 function getRandomMoodIcon(mood) {
@@ -1534,6 +1586,44 @@ function getRandomHeroCopy(mood) {
   const copyPool = HERO_COPY_POOLS[safeMoodKey];
 
   return getRandomItem(copyPool) || HERO_COPY_POOLS.happy[0];
+}
+
+function getIconAnimationClass(icon, fallbackMood = "happy") {
+  const normalizedIcon = getSafeMoodIconText(icon, "");
+  const animationName = ICON_ANIMATION_MAP[normalizedIcon];
+
+  if (animationName) {
+    return `icon-animate-${animationName}`;
+  }
+
+  return "icon-animate-soft";
+}
+
+function getAnimatedIconHtml(icon, fallbackMood = "happy", extraClass = "") {
+  const safeIcon = getSafeMoodIconText(icon, "");
+  const animationClass = getIconAnimationClass(icon, fallbackMood);
+  const className = `${animationClass} ${extraClass}`.trim();
+
+  return `<span class="${className}" aria-hidden="true">${escapeHtml(safeIcon)}</span>`;
+}
+
+function getSafeMoodIconText(icon, fallbackIcon = "") {
+  const iconText = typeof icon === "string" ? icon.trim() : "";
+
+  if (!iconText) {
+    return fallbackIcon;
+  }
+
+  return Array.from(iconText).length <= maxMoodIconLength ? iconText : fallbackIcon;
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function getHeroMoodKeys() {
@@ -1551,19 +1641,17 @@ function getSafeHeroMoodKey(moodKey) {
 }
 
 function getFlowerMoodIcon(flower, mood) {
-  if (typeof flower.moodIcon === "string" && flower.moodIcon.trim()) {
-    return flower.moodIcon.trim();
+  const safeMoodIcon = getSafeMoodIconText(flower.moodIcon, "");
+
+  if (safeMoodIcon) {
+    return safeMoodIcon;
   }
 
   return mood.emoji;
 }
 
 function getImportedMoodIcon(record) {
-  if (typeof record.moodIcon === "string" && record.moodIcon.trim()) {
-    return record.moodIcon.trim();
-  }
-
-  return "";
+  return getSafeMoodIconText(record.moodIcon, "");
 }
 
 function getRandomFlowerQuote(mood) {
