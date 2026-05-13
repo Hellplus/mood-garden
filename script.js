@@ -65,12 +65,22 @@ const flowerQuoteMap = {
 };
 
 const storageKey = "moodGardenFlowers";
+const themeStorageKey = "moodGardenTheme";
+const validThemes = ["light", "dark", "pink"];
+const themeNames = {
+  light: "浅色",
+  dark: "深色",
+  pink: "治愈粉"
+};
 
 const moodOptions = document.querySelector("#moodOptions");
 const noteInput = document.querySelector("#noteInput");
 const plantButton = document.querySelector("#plantButton");
 const clearButton = document.querySelector("#clearButton");
 const exportButton = document.querySelector("#exportButton");
+const exportBackupButton = document.querySelector("#exportBackupButton");
+const importBackupInput = document.querySelector("#importBackupInput");
+const importModeSelect = document.querySelector("#importModeSelect");
 const flowerList = document.querySelector("#flowerList");
 const flowerCount = document.querySelector("#flowerCount");
 const totalCount = document.querySelector("#totalCount");
@@ -82,6 +92,8 @@ const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
 const resetFiltersButton = document.querySelector("#resetFiltersButton");
 const filterCount = document.querySelector("#filterCount");
+const themeSelect = document.querySelector("#themeSelect");
+const toast = document.querySelector("#toast");
 
 const defaultBrowseState = {
   mood: "all",
@@ -89,16 +101,21 @@ const defaultBrowseState = {
   sort: "newest"
 };
 
+const backupAppName = "Mood Garden";
+const backupVersion = "1.2";
+
 let selectedMood = "happy";
 let flowers = loadFlowers();
 let editingFlowerId = "";
 let browseState = { ...defaultBrowseState };
+let toastTimer = 0;
 const addedMissingData = addMissingFlowerData();
 
 if (addedMissingData) {
   saveFlowers();
 }
 
+applyTheme(loadTheme());
 renderFlowers();
 renderStats();
 
@@ -120,7 +137,7 @@ plantButton.addEventListener("click", () => {
   const note = noteInput.value.trim();
 
   if (!note) {
-    message.textContent = "先给今天留下一句小小的心情，再把花种下吧。";
+    showMessage("先给今天留下一句小小的心情，再把花种下吧。", "error");
     noteInput.focus();
     return;
   }
@@ -140,9 +157,12 @@ plantButton.addEventListener("click", () => {
   renderStats();
 
   noteInput.value = "";
-  message.textContent = saved
-    ? "已经种下了，一朵新的情绪花正在花园里发光。"
-    : "这朵花已经显示出来了，但浏览器暂时没能保存它。";
+  showMessage(
+    saved
+      ? "已经种下了，一朵新的情绪花正在花园里发光。"
+      : "这朵花已经显示出来了，但浏览器暂时没能保存它。",
+    saved ? "success" : "error"
+  );
 });
 
 moodFilter.addEventListener("change", () => {
@@ -167,11 +187,24 @@ resetFiltersButton.addEventListener("click", () => {
   resetBrowseState();
 });
 
+themeSelect.addEventListener("change", () => {
+  const nextTheme = themeSelect.value;
+  const saved = saveTheme(nextTheme);
+
+  applyTheme(nextTheme);
+  showMessage(
+    saved
+      ? `已经切换到${getThemeName(nextTheme)}主题。`
+      : "主题已经切换，但浏览器暂时没能记住这次选择。",
+    saved ? "success" : "error"
+  );
+});
+
 exportButton.addEventListener("click", () => {
   const savedFlowers = loadFlowers();
 
   if (savedFlowers.length === 0) {
-    message.textContent = "花园里还没有花，先种下一朵，再导出属于你的情绪日记吧。";
+    showMessage("花园里还没有花，先种下一朵，再导出属于你的情绪日记吧。", "info");
     return;
   }
 
@@ -179,19 +212,27 @@ exportButton.addEventListener("click", () => {
   const fileName = createDiaryFileName(new Date());
 
   downloadTextFile(diaryText, fileName);
-  message.textContent = "情绪日记已经整理好了，正在为你下载。";
+  showMessage("情绪日记已经整理好了，正在为你下载。", "success");
+});
+
+exportBackupButton.addEventListener("click", () => {
+  exportBackup();
+});
+
+importBackupInput.addEventListener("change", (event) => {
+  handleBackupFileChange(event);
 });
 
 clearButton.addEventListener("click", () => {
   if (flowers.length === 0) {
-    message.textContent = "花园现在是空的，先种下一朵花吧。";
+    showMessage("花园现在是空的，先种下一朵花吧。", "info");
     return;
   }
 
   const shouldClear = confirm("确定要清空整个花园吗？这个操作不能撤销。");
 
   if (!shouldClear) {
-    message.textContent = "花园还在，所有花朵都被好好保留着。";
+    showMessage("花园还在，所有花朵都被好好保留着。", "info");
     return;
   }
 
@@ -200,9 +241,12 @@ clearButton.addEventListener("click", () => {
   const cleared = clearSavedFlowers();
   renderFlowers();
   renderStats();
-  message.textContent = cleared
-    ? "花园已经清空。什么时候想重新开始，都可以再种下一朵花。"
-    : "页面里的花园已清空，但浏览器暂时没能清除本地记录。";
+  showMessage(
+    cleared
+      ? "花园已经清空。什么时候想重新开始，都可以再种下一朵花。"
+      : "页面里的花园已清空，但浏览器暂时没能清除本地记录。",
+    cleared ? "success" : "error"
+  );
 });
 
 flowerList.addEventListener("click", (event) => {
@@ -230,6 +274,58 @@ flowerList.addEventListener("click", (event) => {
     deleteFlower(deleteButton.dataset.id);
   }
 });
+
+function loadTheme() {
+  let savedTheme = "";
+
+  try {
+    savedTheme = localStorage.getItem(themeStorageKey);
+  } catch (error) {
+    console.warn("读取主题失败：", error);
+  }
+
+  return validThemes.includes(savedTheme) ? savedTheme : "light";
+}
+
+function saveTheme(theme) {
+  if (!validThemes.includes(theme)) {
+    return false;
+  }
+
+  try {
+    localStorage.setItem(themeStorageKey, theme);
+    return true;
+  } catch (error) {
+    console.warn("保存主题失败：", error);
+    return false;
+  }
+}
+
+function applyTheme(theme) {
+  const safeTheme = validThemes.includes(theme) ? theme : "light";
+
+  document.body.dataset.theme = safeTheme;
+  themeSelect.value = safeTheme;
+}
+
+function getThemeName(theme) {
+  return themeNames[theme] || themeNames.light;
+}
+
+function showMessage(text, type = "info") {
+  message.textContent = text;
+  showToast(text, type);
+}
+
+function showToast(text, type = "info") {
+  toast.textContent = text;
+  toast.className = `toast ${type} show`;
+
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2600);
+}
 
 function loadFlowers() {
   let saved = "";
@@ -355,7 +451,7 @@ function resetBrowseState() {
   sortSelect.value = defaultBrowseState.sort;
   editingFlowerId = "";
   renderFlowers();
-  message.textContent = "已经恢复显示全部花朵。";
+  showMessage("已经恢复显示全部花朵。", "success");
 }
 
 function renderFlowers() {
@@ -367,18 +463,22 @@ function renderFlowers() {
   renderFilterCount(visibleFlowers.length);
 
   if (flowers.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "empty";
-    empty.textContent = "这里还没有花。选一种今天的情绪，写下一句话，慢慢种下第一朵吧。";
-    flowerList.appendChild(empty);
+    flowerList.appendChild(createEmptyState(
+      "garden",
+      "🌱",
+      "花园还在等第一朵花",
+      "选一种今天的情绪，写下一句话，慢慢种下属于你的第一朵。"
+    ));
     return;
   }
 
   if (visibleFlowers.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "empty";
-    empty.textContent = "没有找到符合条件的花。试试换个情绪、关键词，或者重置筛选。";
-    flowerList.appendChild(empty);
+    flowerList.appendChild(createEmptyState(
+      "results",
+      "🔎",
+      "没有找到符合条件的花",
+      "试试换个情绪、关键词，或者点一下重置筛选，让花园重新展开。"
+    ));
     return;
   }
 
@@ -428,17 +528,36 @@ function renderFlowers() {
   });
 }
 
+function createEmptyState(type, icon, title, text) {
+  const empty = document.createElement("div");
+  const iconElement = document.createElement("span");
+  const titleElement = document.createElement("strong");
+  const textElement = document.createElement("span");
+
+  empty.className = `empty empty-${type}`;
+  iconElement.className = "empty-icon";
+  iconElement.textContent = icon;
+  titleElement.textContent = title;
+  textElement.textContent = text;
+
+  empty.appendChild(iconElement);
+  empty.appendChild(titleElement);
+  empty.appendChild(textElement);
+
+  return empty;
+}
+
 function startEditingFlower(flowerId) {
   const flower = flowers.find((item) => item.id === flowerId);
 
   if (!flower) {
-    message.textContent = "没有找到这朵花，先刷新页面再试试看。";
+    showMessage("没有找到这朵花，先刷新页面再试试看。", "error");
     return;
   }
 
   editingFlowerId = flowerId;
   renderFlowers();
-  message.textContent = "可以在卡片里修改这朵花的心情文字。";
+  showMessage("可以在卡片里修改这朵花的心情文字。", "info");
 
   const editInput = flowerList.querySelector(".flower-edit-input");
 
@@ -450,14 +569,14 @@ function startEditingFlower(flowerId) {
 function cancelEditingFlower() {
   editingFlowerId = "";
   renderFlowers();
-  message.textContent = "这朵花保持原来的样子。";
+  showMessage("这朵花保持原来的样子。", "info");
 }
 
 function saveEditedFlower(flowerId) {
   const flower = flowers.find((item) => item.id === flowerId);
 
   if (!flower) {
-    message.textContent = "没有找到这朵花，先刷新页面再试试看。";
+    showMessage("没有找到这朵花，先刷新页面再试试看。", "error");
     return;
   }
 
@@ -466,7 +585,7 @@ function saveEditedFlower(flowerId) {
   const trimmedNote = nextNote.trim();
 
   if (!trimmedNote) {
-    message.textContent = "心情文字不能为空，这朵花还保留着原来的内容。";
+    showMessage("心情文字不能为空，这朵花还保留着原来的内容。", "error");
     return;
   }
 
@@ -476,16 +595,19 @@ function saveEditedFlower(flowerId) {
 
   renderFlowers();
   renderStats();
-  message.textContent = saved
-    ? "这朵花的心情文字已经更新好了。"
-    : "页面里的心情文字已更新，但浏览器暂时没能保存这次修改。";
+  showMessage(
+    saved
+      ? "这朵花的心情文字已经更新好了。"
+      : "页面里的心情文字已更新，但浏览器暂时没能保存这次修改。",
+    saved ? "success" : "error"
+  );
 }
 
 function deleteFlower(flowerId) {
   const shouldDelete = confirm("确定要删除这一朵花吗？这个操作不能撤销。");
 
   if (!shouldDelete) {
-    message.textContent = "这朵花还在，已经帮你保留下来了。";
+    showMessage("这朵花还在，已经帮你保留下来了。", "info");
     return;
   }
 
@@ -494,9 +616,12 @@ function deleteFlower(flowerId) {
 
   renderFlowers();
   renderStats();
-  message.textContent = saved
-    ? "已经删除这一朵花，花园记录也同步更新了。"
-    : "页面里的花已删除，但浏览器暂时没能保存这次变化。";
+  showMessage(
+    saved
+      ? "已经删除这一朵花，花园记录也同步更新了。"
+      : "页面里的花已删除，但浏览器暂时没能保存这次变化。",
+    saved ? "success" : "error"
+  );
 }
 
 function renderStats() {
@@ -551,9 +676,250 @@ function createDiaryFileName(date) {
   return `mood-garden-diary-${formatDateForFileName(date)}.txt`;
 }
 
-function downloadTextFile(text, fileName) {
-  const file = new Blob(["\uFEFF", text], {
-    type: "text/plain;charset=utf-8"
+function exportBackup() {
+  const savedFlowers = loadFlowers();
+
+  if (savedFlowers.length === 0) {
+    showMessage("花园里还没有可以备份的花，先种下一朵吧。", "info");
+    return;
+  }
+
+  const backupData = createBackupData(savedFlowers);
+  const backupText = JSON.stringify(backupData, null, 2);
+  const fileName = createBackupFileName(new Date());
+
+  downloadTextFile(backupText, fileName, "application/json;charset=utf-8");
+  showMessage("JSON 备份已经整理好了，正在为你下载。", "success");
+}
+
+function createBackupData(savedFlowers) {
+  return {
+    app: backupAppName,
+    version: backupVersion,
+    exportedAt: new Date().toISOString(),
+    records: savedFlowers.map((flower) => {
+      return { ...flower };
+    })
+  };
+}
+
+function createBackupFileName(date) {
+  return `mood-garden-backup-${formatDateForFileName(date)}.json`;
+}
+
+function handleBackupFileChange(event) {
+  const file = event.target.files[0];
+
+  if (!file) {
+    return;
+  }
+
+  readBackupFile(file)
+    .then((fileText) => {
+      const backupData = parseBackupJson(fileText);
+      const records = getBackupRecords(backupData);
+
+      validateBackupRecords(records);
+
+      const importedFlowers = normalizeImportedFlowers(records);
+      const importMode = importModeSelect.value === "replace" ? "replace" : "merge";
+
+      if (!confirmImport(importedFlowers, importMode)) {
+        showMessage("导入已取消，当前花园没有变化。", "info");
+        return;
+      }
+
+      if (importMode === "replace") {
+        const shouldReplace = confirm("再次确认：覆盖导入会替换当前花园里的所有记录，确定继续吗？");
+
+        if (!shouldReplace) {
+          showMessage("覆盖导入已取消，当前花园没有变化。", "info");
+          return;
+        }
+      }
+
+      importBackupRecords(importedFlowers, importMode);
+    })
+    .catch((error) => {
+      console.warn("导入备份失败：", error);
+      showMessage(error.message || "导入失败了，请换一个 Mood Garden 备份文件试试看。", "error");
+    })
+    .finally(() => {
+      importBackupInput.value = "";
+    });
+}
+
+function readBackupFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.addEventListener("load", () => {
+      resolve(String(reader.result || ""));
+    });
+
+    reader.addEventListener("error", () => {
+      reject(new Error("读取备份文件失败，请重新选择文件试试看。"));
+    });
+
+    reader.readAsText(file, "utf-8");
+  });
+}
+
+function parseBackupJson(fileText) {
+  try {
+    return JSON.parse(fileText.replace(/^\uFEFF/, ""));
+  } catch (error) {
+    throw new Error("这个文件不是合法的 JSON，请选择 Mood Garden 导出的备份文件。");
+  }
+}
+
+function getBackupRecords(backupData) {
+  if (Array.isArray(backupData)) {
+    return backupData;
+  }
+
+  if (backupData && typeof backupData === "object" && Array.isArray(backupData.records)) {
+    return backupData.records;
+  }
+
+  throw new Error("这个备份文件缺少 records 数组，暂时不能导入。");
+}
+
+function validateBackupRecords(records) {
+  if (!Array.isArray(records)) {
+    throw new Error("备份文件里的 records 不是数组，暂时不能导入。");
+  }
+
+  if (records.length === 0) {
+    throw new Error("这个备份文件里没有花卡片记录，导入已取消。");
+  }
+
+  records.forEach((record, index) => {
+    if (!record || typeof record !== "object") {
+      throw new Error(`第 ${index + 1} 条记录格式不正确，导入已取消。`);
+    }
+
+    if (!moodMap[record.mood]) {
+      throw new Error(`第 ${index + 1} 条记录的情绪类型不正确，导入已取消。`);
+    }
+
+    if (typeof record.note !== "string" || !record.note.trim()) {
+      throw new Error(`第 ${index + 1} 条记录缺少心情文字，导入已取消。`);
+    }
+  });
+}
+
+function normalizeImportedFlowers(records) {
+  const now = Date.now();
+
+  return records.map((record, index) => {
+    const mood = moodMap[record.mood];
+    const createdAt = getImportedCreatedAt(record.createdAt, now - index);
+    const date = typeof record.date === "string" && record.date.trim()
+      ? record.date.trim()
+      : formatDate(new Date(createdAt));
+
+    return {
+      id: getImportedFlowerId(record),
+      mood: record.mood,
+      note: record.note.trim(),
+      flowerQuote: getImportedFlowerQuote(record, mood),
+      createdAt,
+      date
+    };
+  });
+}
+
+function getImportedFlowerId(record) {
+  if (typeof record.id === "string" && record.id.trim()) {
+    return record.id.trim();
+  }
+
+  return createFlowerId();
+}
+
+function getImportedCreatedAt(value, fallbackCreatedAt) {
+  const createdAt = Number(value);
+  return Number.isFinite(createdAt) ? createdAt : fallbackCreatedAt;
+}
+
+function getImportedFlowerQuote(record, mood) {
+  const quote = record.flowerQuote || record.flowerLanguage;
+
+  if (typeof quote === "string" && quote.trim()) {
+    return quote.trim();
+  }
+
+  return mood.copy;
+}
+
+function getMoodSummary(records) {
+  const summary = Object.keys(moodMap)
+    .map((moodKey) => {
+      const mood = moodMap[moodKey];
+      const count = records.filter((record) => record.mood === moodKey).length;
+      return count > 0 ? `${mood.name} ${count} 朵` : "";
+    })
+    .filter(Boolean);
+
+  return summary.length > 0 ? summary.join("、") : "暂无情绪记录";
+}
+
+function confirmImport(importedFlowers, importMode) {
+  const modeText = importMode === "replace" ? "覆盖导入" : "合并导入";
+  const modeDescription = importMode === "replace"
+    ? "覆盖导入会替换当前花园里的所有记录。"
+    : "合并导入会把备份记录加入当前花园，并尽量避免重复 id。";
+  const summary = getMoodSummary(importedFlowers);
+
+  return confirm(
+    `即将${modeText} ${importedFlowers.length} 条记录。\n\n` +
+    `情绪分布：${summary}\n\n` +
+    `${modeDescription}\n\n` +
+    "确定继续吗？"
+  );
+}
+
+function importBackupRecords(importedFlowers, importMode) {
+  if (importMode === "replace") {
+    flowers = ensureUniqueFlowerIds(importedFlowers, new Set());
+  } else {
+    const currentIds = new Set(flowers.map((flower) => flower.id));
+    const safeImportedFlowers = ensureUniqueFlowerIds(importedFlowers, currentIds);
+
+    flowers = [...safeImportedFlowers, ...flowers];
+  }
+
+  editingFlowerId = "";
+  const saved = saveFlowers();
+
+  renderFlowers();
+  renderStats();
+  showMessage(
+    saved
+      ? "备份导入成功，花园已经刷新好了。"
+      : "备份内容已显示出来，但浏览器暂时没能保存这次导入。",
+    saved ? "success" : "error"
+  );
+}
+
+function ensureUniqueFlowerIds(records, usedIds) {
+  return records.map((record) => {
+    const nextRecord = { ...record };
+
+    while (!nextRecord.id || usedIds.has(nextRecord.id)) {
+      nextRecord.id = createFlowerId();
+    }
+
+    usedIds.add(nextRecord.id);
+    return nextRecord;
+  });
+}
+
+function downloadTextFile(text, fileName, fileType = "text/plain;charset=utf-8") {
+  const fileParts = fileType.includes("application/json") ? [text] : ["\uFEFF", text];
+  const file = new Blob(fileParts, {
+    type: fileType
   });
   const link = document.createElement("a");
   const fileUrl = URL.createObjectURL(file);
