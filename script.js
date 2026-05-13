@@ -495,11 +495,14 @@ function renderFlowers() {
         <span class="flower-emoji" aria-hidden="true">${mood.emoji}</span>
         <span class="flower-date">创建于 ${flower.date || "未知日期"}</span>
       </div>
-      <h3>${mood.name}</h3>
-      ${isEditing
-        ? '<textarea class="flower-edit-input" rows="3" maxlength="80"></textarea>'
-        : '<p class="flower-note"></p>'}
-      <p class="flower-copy"></p>
+      <div class="flower-body">
+        <span class="flower-label">今日情绪</span>
+        <h3>${mood.name}</h3>
+        ${isEditing
+          ? '<textarea class="flower-edit-input" rows="3" maxlength="80"></textarea>'
+          : '<p class="flower-note"></p>'}
+        <p class="flower-copy"></p>
+      </div>
       <div class="flower-card-actions">
         ${isEditing
           ? `

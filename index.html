@@ -8,56 +8,80 @@
 </head>
 <body>
   <main class="garden">
-    <section class="hero" aria-labelledby="page-title">
-      <label class="theme-switcher" for="themeSelect">
-        <span>主题</span>
-        <select id="themeSelect">
-          <option value="light">浅色</option>
-          <option value="dark">深色</option>
-          <option value="pink">治愈粉</option>
-        </select>
-      </label>
-      <p class="eyebrow">Today, plant gently.</p>
-      <h1 id="page-title">Mood Garden 情绪花园</h1>
-      <p class="intro">这是一个记录情绪的小花园。选一种今天的心情，写下一句话，把它种成一朵会被保存下来的花。</p>
-    </section>
-
-    <section class="panel" aria-labelledby="form-title">
-      <h2 id="form-title">今天的花</h2>
-
-      <div class="field">
-        <span class="label">选择情绪</span>
-        <div class="mood-options" id="moodOptions">
-          <button class="mood-button active" type="button" data-mood="happy">开心</button>
-          <button class="mood-button" type="button" data-mood="calm">平静</button>
-          <button class="mood-button" type="button" data-mood="anxious">焦虑</button>
-          <button class="mood-button" type="button" data-mood="tired">疲惫</button>
-          <button class="mood-button" type="button" data-mood="excited">兴奋</button>
+    <section class="hero glass-card" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <label class="theme-switcher" for="themeSelect">
+          <span>主题</span>
+          <select id="themeSelect">
+            <option value="light">浅色</option>
+            <option value="dark">深色</option>
+            <option value="pink">治愈粉</option>
+          </select>
+        </label>
+        <p class="eyebrow">Private mood journal</p>
+        <h1 id="page-title">Mood Garden 情绪花园</h1>
+        <p class="intro">把今天的情绪写成一句话，再种成一朵会被保存下来的花。这里是一页只属于你的温柔手账。</p>
+        <div class="hero-tags" aria-label="项目特点">
+          <span>本地保存</span>
+          <span>情绪花语</span>
+          <span>手账花卡</span>
         </div>
       </div>
-
-      <label class="field" for="noteInput">
-        <span class="label">一句今天的心情</span>
-        <textarea id="noteInput" rows="3" maxlength="80" placeholder="例如：今天慢慢来，也很好。"></textarea>
-      </label>
-
-      <button class="plant-button" id="plantButton" type="button">种下一朵花</button>
-      <p class="hint" id="message"></p>
-    </section>
-
-    <section class="stats" aria-labelledby="stats-title">
-      <div class="section-heading">
-        <h2 id="stats-title">情绪统计</h2>
-        <span id="totalCount">共 0 朵花</span>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="journal-cover">
+          <span class="journal-label">Today</span>
+          <span class="journal-flower">🌷</span>
+          <strong>把心情轻轻种下</strong>
+          <p>一朵花，一句今天。</p>
+        </div>
       </div>
-      <div class="stats-list" id="statsList"></div>
-      <p class="garden-note" id="gardenNote">花园还在等第一朵花。</p>
     </section>
 
-    <section class="browse-panel" aria-labelledby="browse-title">
+    <div class="entry-layout">
+      <section class="panel glass-card entry-panel" aria-labelledby="form-title">
+        <p class="section-kicker">Today note</p>
+        <h2 id="form-title">今天的花</h2>
+
+        <div class="field">
+          <span class="label">选择情绪</span>
+          <div class="mood-options" id="moodOptions">
+            <button class="mood-button active" type="button" data-mood="happy">开心</button>
+            <button class="mood-button" type="button" data-mood="calm">平静</button>
+            <button class="mood-button" type="button" data-mood="anxious">焦虑</button>
+            <button class="mood-button" type="button" data-mood="tired">疲惫</button>
+            <button class="mood-button" type="button" data-mood="excited">兴奋</button>
+          </div>
+        </div>
+
+        <label class="field note-field" for="noteInput">
+          <span class="label">一句今天的心情</span>
+          <textarea id="noteInput" rows="3" maxlength="80" placeholder="例如：今天慢慢来，也很好。"></textarea>
+        </label>
+
+        <button class="plant-button" id="plantButton" type="button">种下一朵花</button>
+        <p class="hint" id="message"></p>
+      </section>
+
+      <section class="stats glass-card overview-panel" aria-labelledby="stats-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Garden overview</p>
+            <h2 id="stats-title">情绪统计</h2>
+          </div>
+          <span class="count-pill" id="totalCount">共 0 朵花</span>
+        </div>
+        <div class="stats-list" id="statsList"></div>
+        <p class="garden-note" id="gardenNote">花园还在等第一朵花。</p>
+      </section>
+    </div>
+
+    <section class="browse-panel glass-card" aria-labelledby="browse-title">
       <div class="section-heading">
-        <h2 id="browse-title">浏览花园</h2>
-        <span id="filterCount">当前显示 0 / 0 条记录</span>
+        <div>
+          <p class="section-kicker">Browse tools</p>
+          <h2 id="browse-title">浏览花园</h2>
+        </div>
+        <span class="count-pill" id="filterCount">当前显示 0 / 0 条记录</span>
       </div>
 
       <div class="browse-controls">
@@ -90,27 +114,41 @@
       </div>
     </section>
 
-    <section class="history" aria-labelledby="history-title">
-      <div class="section-heading">
-        <h2 id="history-title">我的花园</h2>
-        <div class="history-actions">
-          <span id="flowerCount">0 朵花</span>
-          <div class="history-buttons">
-            <button class="export-button" id="exportButton" type="button">导出日记</button>
-            <button class="backup-button" id="exportBackupButton" type="button">导出备份</button>
-            <label class="import-mode-field" for="importModeSelect">
-              <span>导入方式</span>
-              <select class="import-mode-select" id="importModeSelect" aria-label="导入方式">
-                <option value="merge">合并导入</option>
-                <option value="replace">覆盖导入</option>
-              </select>
-            </label>
-            <label class="import-backup-label" for="importBackupInput">导入备份</label>
-            <input id="importBackupInput" type="file" accept="application/json,.json" hidden>
-            <button class="clear-button" id="clearButton" type="button">清空花园</button>
-          </div>
+    <section class="history glass-card" aria-labelledby="history-title">
+      <div class="section-heading history-heading">
+        <div>
+          <p class="section-kicker">Garden archive</p>
+          <h2 id="history-title">我的花园</h2>
+        </div>
+        <span class="count-pill" id="flowerCount">0 朵花</span>
+      </div>
+
+      <div class="data-actions" aria-label="花园数据操作">
+        <div class="action-group">
+          <span class="action-label">日记</span>
+          <button class="export-button" id="exportButton" type="button">导出日记</button>
+        </div>
+
+        <div class="action-group action-group-wide">
+          <span class="action-label">备份</span>
+          <button class="backup-button" id="exportBackupButton" type="button">导出备份</button>
+          <label class="import-mode-field" for="importModeSelect">
+            <span>导入方式</span>
+            <select class="import-mode-select" id="importModeSelect" aria-label="导入方式">
+              <option value="merge">合并导入</option>
+              <option value="replace">覆盖导入</option>
+            </select>
+          </label>
+          <label class="import-backup-label" for="importBackupInput">导入备份</label>
+          <input id="importBackupInput" type="file" accept="application/json,.json" hidden>
+        </div>
+
+        <div class="action-group action-group-danger">
+          <span class="action-label">整理</span>
+          <button class="clear-button" id="clearButton" type="button">清空花园</button>
         </div>
       </div>
+
       <div class="flower-list" id="flowerList"></div>
     </section>
   </main>
