@@ -31,6 +31,14 @@ const moodMap = {
   }
 };
 
+const moodIconMap = {
+  happy: ["🌻", "🌼", "☀️", "🌞", "✨"],
+  calm: ["🌿", "🍃", "🪴", "🌱", "🫧"],
+  anxious: ["🌧️", "☁️", "🌫️", "💧", "🌀"],
+  tired: ["🌙", "🌌", "🕯️", "💤", "⭐"],
+  excited: ["🌺", "🌈", "🔥", "🎈", "💫"]
+};
+
 const flowerQuoteMap = {
   happy: [
     "今天的光也在偏爱你。",
@@ -100,6 +108,7 @@ const resetFiltersButton = document.querySelector("#resetFiltersButton");
 const filterCount = document.querySelector("#filterCount");
 const themeSelect = document.querySelector("#themeSelect");
 const toast = document.querySelector("#toast");
+const heroMoodIcon = document.querySelector(".journal-flower");
 
 const defaultBrowseState = {
   mood: "all",
@@ -126,6 +135,7 @@ if (addedMissingData) {
 }
 
 applyTheme(loadTheme());
+initHeroMoodIcon();
 renderFlowers();
 renderStats();
 renderAnalysis();
@@ -153,9 +163,11 @@ plantButton.addEventListener("click", () => {
     return;
   }
 
+  const moodIcon = getRandomMoodIcon(selectedMood);
   const flower = {
     id: createFlowerId(),
     mood: selectedMood,
+    moodIcon,
     note,
     flowerQuote: getRandomFlowerQuote(selectedMood),
     createdAt: Date.now(),
@@ -168,6 +180,7 @@ plantButton.addEventListener("click", () => {
   renderFlowers();
   renderStats();
   renderAnalysis({ animate: true });
+  updateHeroMoodIcon(moodIcon, selectedMood);
 
   noteInput.value = "";
   showMessage(
@@ -512,7 +525,9 @@ function renderFlowers(options = {}) {
   }
 
   visibleFlowers.forEach((flower) => {
-    const mood = moodMap[flower.mood] || moodMap.happy;
+    const moodKey = moodMap[flower.mood] ? flower.mood : "happy";
+    const mood = moodMap[moodKey];
+    const moodIcon = getFlowerMoodIcon(flower, mood);
     const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
     const isEditing = flower.id === editingFlowerId;
     const card = document.createElement("article");
@@ -527,11 +542,11 @@ function renderFlowers(options = {}) {
     }
 
     card.className = cardClasses.join(" ");
-    card.dataset.emoji = mood.emoji;
+    card.dataset.emoji = moodIcon;
     card.dataset.id = flower.id;
     card.innerHTML = `
       <div class="flower-top">
-        <span class="flower-emoji" aria-hidden="true">${mood.emoji}</span>
+        <span class="flower-emoji mood-icon mood-icon-${moodKey}" aria-hidden="true">${moodIcon}</span>
         <span class="flower-date">创建于 ${flower.date || "未知日期"}</span>
       </div>
       <div class="flower-body">
@@ -1077,11 +1092,12 @@ function createDiaryText(savedFlowers) {
 
   savedFlowers.forEach((flower, index) => {
     const mood = moodMap[flower.mood] || moodMap.happy;
+    const moodIcon = getFlowerMoodIcon(flower, mood);
     const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
 
     lines.push(
       `${index + 1}. 创建日期：${flower.date || "未知日期"}`,
-      `情绪：${mood.emoji} ${mood.name}`,
+      `情绪：${moodIcon} ${mood.name}`,
       `心情：${flower.note || "没有留下文字"}`,
       `随机花语：${flowerQuote}`,
       ""
@@ -1237,8 +1253,9 @@ function normalizeImportedFlowers(records) {
     const date = typeof record.date === "string" && record.date.trim()
       ? record.date.trim()
       : formatDate(new Date(createdAt));
+    const moodIcon = getImportedMoodIcon(record);
 
-    return {
+    const importedFlower = {
       id: getImportedFlowerId(record),
       mood: record.mood,
       note: record.note.trim(),
@@ -1246,6 +1263,12 @@ function normalizeImportedFlowers(records) {
       createdAt,
       date
     };
+
+    if (moodIcon) {
+      importedFlower.moodIcon = moodIcon;
+    }
+
+    return importedFlower;
   });
 }
 
@@ -1350,6 +1373,54 @@ function downloadTextFile(text, fileName, fileType = "text/plain;charset=utf-8")
   link.click();
   link.remove();
   URL.revokeObjectURL(fileUrl);
+}
+
+function initHeroMoodIcon() {
+  const moodKeys = Object.keys(moodIconMap);
+  const randomMood = getRandomItem(moodKeys) || "happy";
+  const icon = getRandomMoodIcon(randomMood);
+
+  updateHeroMoodIcon(icon, randomMood);
+}
+
+function updateHeroMoodIcon(icon, moodKey) {
+  if (!heroMoodIcon) {
+    return;
+  }
+
+  const safeMoodKey = moodMap[moodKey] ? moodKey : "happy";
+
+  removeMoodIconClasses(heroMoodIcon);
+  heroMoodIcon.classList.add("mood-icon", `mood-icon-${safeMoodKey}`);
+  heroMoodIcon.textContent = icon || moodMap[safeMoodKey].emoji;
+}
+
+function removeMoodIconClasses(element) {
+  Object.keys(moodMap).forEach((moodKey) => {
+    element.classList.remove(`mood-icon-${moodKey}`);
+  });
+}
+
+function getRandomMoodIcon(mood) {
+  const icons = moodIconMap[mood] || moodIconMap.happy;
+
+  return getRandomItem(icons) || moodMap.happy.emoji;
+}
+
+function getFlowerMoodIcon(flower, mood) {
+  if (typeof flower.moodIcon === "string" && flower.moodIcon.trim()) {
+    return flower.moodIcon.trim();
+  }
+
+  return mood.emoji;
+}
+
+function getImportedMoodIcon(record) {
+  if (typeof record.moodIcon === "string" && record.moodIcon.trim()) {
+    return record.moodIcon.trim();
+  }
+
+  return "";
 }
 
 function getRandomFlowerQuote(mood) {
