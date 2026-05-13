@@ -77,13 +77,25 @@ const totalCount = document.querySelector("#totalCount");
 const statsList = document.querySelector("#statsList");
 const gardenNote = document.querySelector("#gardenNote");
 const message = document.querySelector("#message");
+const moodFilter = document.querySelector("#moodFilter");
+const searchInput = document.querySelector("#searchInput");
+const sortSelect = document.querySelector("#sortSelect");
+const resetFiltersButton = document.querySelector("#resetFiltersButton");
+const filterCount = document.querySelector("#filterCount");
+
+const defaultBrowseState = {
+  mood: "all",
+  keyword: "",
+  sort: "newest"
+};
 
 let selectedMood = "happy";
 let flowers = loadFlowers();
 let editingFlowerId = "";
-const addedMissingIds = addMissingFlowerIds();
+let browseState = { ...defaultBrowseState };
+const addedMissingData = addMissingFlowerData();
 
-if (addedMissingIds) {
+if (addedMissingData) {
   saveFlowers();
 }
 
@@ -118,6 +130,7 @@ plantButton.addEventListener("click", () => {
     mood: selectedMood,
     note,
     flowerQuote: getRandomFlowerQuote(selectedMood),
+    createdAt: Date.now(),
     date: formatDate(new Date())
   };
 
@@ -130,6 +143,28 @@ plantButton.addEventListener("click", () => {
   message.textContent = saved
     ? "已经种下了，一朵新的情绪花正在花园里发光。"
     : "这朵花已经显示出来了，但浏览器暂时没能保存它。";
+});
+
+moodFilter.addEventListener("change", () => {
+  browseState.mood = moodFilter.value;
+  editingFlowerId = "";
+  renderFlowers();
+});
+
+searchInput.addEventListener("input", () => {
+  browseState.keyword = searchInput.value.trim().toLowerCase();
+  editingFlowerId = "";
+  renderFlowers();
+});
+
+sortSelect.addEventListener("change", () => {
+  browseState.sort = sortSelect.value;
+  editingFlowerId = "";
+  renderFlowers();
+});
+
+resetFiltersButton.addEventListener("click", () => {
+  resetBrowseState();
 });
 
 exportButton.addEventListener("click", () => {
@@ -239,12 +274,18 @@ function clearSavedFlowers() {
   }
 }
 
-function addMissingFlowerIds() {
+function addMissingFlowerData() {
   let changed = false;
+  const now = Date.now();
 
-  flowers.forEach((flower) => {
+  flowers.forEach((flower, index) => {
     if (!flower.id) {
       flower.id = createFlowerId();
+      changed = true;
+    }
+
+    if (!Number.isFinite(flower.createdAt)) {
+      flower.createdAt = now - index;
       changed = true;
     }
   });
@@ -252,10 +293,78 @@ function addMissingFlowerIds() {
   return changed;
 }
 
+function getVisibleFlowers() {
+  let visibleFlowers = [...flowers];
+
+  visibleFlowers = visibleFlowers.filter((flower) => {
+    return matchesMood(flower) && matchesKeyword(flower);
+  });
+
+  return sortVisibleFlowers(visibleFlowers);
+}
+
+function sortVisibleFlowers(visibleFlowers) {
+  return visibleFlowers
+    .map((flower, index) => {
+      return { flower, index };
+    })
+    .sort((a, b) => {
+      const timeA = getFlowerCreatedAt(a.flower, a.index);
+      const timeB = getFlowerCreatedAt(b.flower, b.index);
+
+      if (timeA === timeB) {
+        return a.index - b.index;
+      }
+
+      return browseState.sort === "oldest"
+        ? timeA - timeB
+        : timeB - timeA;
+    })
+    .map((item) => item.flower);
+}
+
+function getFlowerCreatedAt(flower, fallbackIndex) {
+  if (Number.isFinite(flower.createdAt)) {
+    return flower.createdAt;
+  }
+
+  return -fallbackIndex;
+}
+
+function matchesMood(flower) {
+  return browseState.mood === "all" || flower.mood === browseState.mood;
+}
+
+function matchesKeyword(flower) {
+  if (!browseState.keyword) {
+    return true;
+  }
+
+  const note = String(flower.note || "").toLowerCase();
+  return note.includes(browseState.keyword);
+}
+
+function renderFilterCount(visibleCount) {
+  filterCount.textContent = `当前显示 ${visibleCount} / ${flowers.length} 条记录`;
+}
+
+function resetBrowseState() {
+  browseState = { ...defaultBrowseState };
+  moodFilter.value = defaultBrowseState.mood;
+  searchInput.value = defaultBrowseState.keyword;
+  sortSelect.value = defaultBrowseState.sort;
+  editingFlowerId = "";
+  renderFlowers();
+  message.textContent = "已经恢复显示全部花朵。";
+}
+
 function renderFlowers() {
+  const visibleFlowers = getVisibleFlowers();
+
   flowerList.innerHTML = "";
   flowerCount.textContent = `${flowers.length} 朵花`;
   clearButton.disabled = flowers.length === 0;
+  renderFilterCount(visibleFlowers.length);
 
   if (flowers.length === 0) {
     const empty = document.createElement("p");
@@ -265,7 +374,15 @@ function renderFlowers() {
     return;
   }
 
-  flowers.forEach((flower) => {
+  if (visibleFlowers.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "没有找到符合条件的花。试试换个情绪、关键词，或者重置筛选。";
+    flowerList.appendChild(empty);
+    return;
+  }
+
+  visibleFlowers.forEach((flower) => {
     const mood = moodMap[flower.mood] || moodMap.happy;
     const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
     const isEditing = flower.id === editingFlowerId;

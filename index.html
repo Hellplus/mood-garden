@@ -46,6 +46,42 @@
       <p class="garden-note" id="gardenNote">花园还在等第一朵花。</p>
     </section>
 
+    <section class="browse-panel" aria-labelledby="browse-title">
+      <div class="section-heading">
+        <h2 id="browse-title">浏览花园</h2>
+        <span id="filterCount">当前显示 0 / 0 条记录</span>
+      </div>
+
+      <div class="browse-controls">
+        <label class="browse-field" for="moodFilter">
+          <span class="label">按情绪</span>
+          <select id="moodFilter">
+            <option value="all">全部</option>
+            <option value="happy">开心</option>
+            <option value="calm">平静</option>
+            <option value="anxious">焦虑</option>
+            <option value="tired">疲惫</option>
+            <option value="excited">兴奋</option>
+          </select>
+        </label>
+
+        <label class="browse-field" for="searchInput">
+          <span class="label">搜索心情</span>
+          <input id="searchInput" type="search" placeholder="输入关键词">
+        </label>
+
+        <label class="browse-field" for="sortSelect">
+          <span class="label">排序</span>
+          <select id="sortSelect">
+            <option value="newest">最新优先</option>
+            <option value="oldest">最早优先</option>
+          </select>
+        </label>
+
+        <button class="reset-filters-button" id="resetFiltersButton" type="button">重置筛选</button>
+      </div>
+    </section>
+
     <section class="history" aria-labelledby="history-title">
       <div class="section-heading">
         <h2 id="history-title">我的花园</h2>

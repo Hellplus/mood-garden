@@ -50,12 +50,16 @@ body::after {
 }
 
 button,
-textarea {
+textarea,
+input,
+select {
   font: inherit;
 }
 
 button:focus-visible,
-textarea:focus-visible {
+textarea:focus-visible,
+input:focus-visible,
+select:focus-visible {
   outline: 3px solid rgba(91, 132, 82, 0.28);
   outline-offset: 3px;
 }
@@ -116,6 +120,7 @@ h1 {
 
 .panel,
 .stats,
+.browse-panel,
 .history {
   position: relative;
   overflow: hidden;
@@ -135,6 +140,7 @@ h1 {
 
 .panel::before,
 .stats::before,
+.browse-panel::before,
 .history::before {
   position: absolute;
   top: 0;
@@ -153,6 +159,7 @@ h1 {
 
 .panel h2,
 .stats h2,
+.browse-panel h2,
 .history h2 {
   margin-bottom: 18px;
   font-size: 1.25rem;
@@ -258,6 +265,62 @@ textarea:focus {
   padding: 24px;
 }
 
+.browse-panel {
+  margin-top: 24px;
+  padding: 24px;
+}
+
+.browse-controls {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.8fr) minmax(200px, 1.4fr) minmax(130px, 0.8fr) auto;
+  align-items: end;
+  gap: 14px;
+}
+
+.browse-field {
+  display: grid;
+  gap: 8px;
+}
+
+select,
+input[type="search"] {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.66);
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
+}
+
+select:focus,
+input[type="search"]:focus {
+  border-color: rgba(71, 125, 84, 0.52);
+  box-shadow: 0 0 0 4px rgba(134, 188, 125, 0.18);
+}
+
+.reset-filters-button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(71, 125, 84, 0.24);
+  border-radius: 999px;
+  color: #426d4b;
+  background: rgba(255, 255, 255, 0.58);
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(65, 78, 62, 0.06);
+  white-space: nowrap;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.reset-filters-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(71, 125, 84, 0.42);
+  background: rgba(244, 252, 240, 0.9);
+  box-shadow: 0 12px 24px rgba(65, 78, 62, 0.1);
+}
+
 .stats-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -319,6 +382,11 @@ textarea:focus {
 }
 
 #totalCount {
+  color: #667067;
+  font-size: 0.95rem;
+}
+
+#filterCount {
   color: #667067;
   font-size: 0.95rem;
 }
@@ -612,6 +680,7 @@ textarea:focus {
 
   .panel,
   .stats,
+  .browse-panel,
   .history {
     padding: 22px 18px 18px;
   }
@@ -623,6 +692,16 @@ textarea:focus {
   .mood-button {
     padding: 0 8px;
     font-size: 0.95rem;
+  }
+
+  .browse-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reset-filters-button {
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 0.9rem;
   }
 
   .section-heading {
@@ -653,8 +732,14 @@ textarea:focus {
   }
 
   .mood-options,
-  .stats-list {
+  .stats-list,
+  .browse-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .browse-field,
+  .reset-filters-button {
+    grid-column: 1 / -1;
   }
 
   .flower-card {
