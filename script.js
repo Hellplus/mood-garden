@@ -39,6 +39,99 @@ const moodIconMap = {
   excited: ["🌺", "🌈", "🔥", "🎈", "💫"]
 };
 
+const HERO_COPY_POOLS = {
+  happy: [
+    {
+      heroTitle: "把明亮留在今天",
+      heroSubtitle: "小小的快乐，也值得被认真种下。"
+    },
+    {
+      heroTitle: "今天有一点发光",
+      heroSubtitle: "让这份好心情，在花园里慢慢停留。"
+    },
+    {
+      heroTitle: "收藏一朵轻快的花",
+      heroSubtitle: "快乐不必很大，被看见就很好。"
+    },
+    {
+      heroTitle: "把笑意种进花园",
+      heroSubtitle: "今天的温度，可以被一朵花记住。"
+    }
+  ],
+  calm: [
+    {
+      heroTitle: "让心慢慢落地",
+      heroSubtitle: "安静的一天，也有自己的花期。"
+    },
+    {
+      heroTitle: "种下一点平静",
+      heroSubtitle: "不用追赶，花会按自己的节奏长大。"
+    },
+    {
+      heroTitle: "把呼吸放轻一点",
+      heroSubtitle: "这一刻很小，也很值得被保存。"
+    },
+    {
+      heroTitle: "给今天留一片安静",
+      heroSubtitle: "慢慢写下，慢慢开花。"
+    }
+  ],
+  anxious: [
+    {
+      heroTitle: "先种下一次呼吸",
+      heroSubtitle: "不急着解决一切，先陪今天待一会儿。"
+    },
+    {
+      heroTitle: "把紧张轻轻放下",
+      heroSubtitle: "云会经过，花也会一点点长出来。"
+    },
+    {
+      heroTitle: "给心事一个小花盆",
+      heroSubtitle: "写下来，它就不必全挤在心里。"
+    },
+    {
+      heroTitle: "今天先慢慢来",
+      heroSubtitle: "把复杂的心情，种成一朵小花。"
+    }
+  ],
+  tired: [
+    {
+      heroTitle: "把疲惫安放一下",
+      heroSubtitle: "花也有慢慢蓄力的夜晚。"
+    },
+    {
+      heroTitle: "今天可以轻一点",
+      heroSubtitle: "不必用力开花，先好好停靠。"
+    },
+    {
+      heroTitle: "给自己留一盏小灯",
+      heroSubtitle: "累的时候，也可以被温柔记录。"
+    },
+    {
+      heroTitle: "让花园替你慢下来",
+      heroSubtitle: "休息不是空白，是重新长根。"
+    }
+  ],
+  excited: [
+    {
+      heroTitle: "把期待种成花",
+      heroSubtitle: "这份亮晶晶的心情，可以先被收藏。"
+    },
+    {
+      heroTitle: "今天有新的风",
+      heroSubtitle: "让热烈有地方停靠，也有名字。"
+    },
+    {
+      heroTitle: "把闪光留给花园",
+      heroSubtitle: "兴奋的时刻，也值得慢慢记下。"
+    },
+    {
+      heroTitle: "让可能性开一朵花",
+      heroSubtitle: "新的心动，正在轻轻靠近。"
+    }
+  ]
+};
+
 const flowerQuoteMap = {
   happy: [
     "今天的光也在偏爱你。",
@@ -109,6 +202,8 @@ const filterCount = document.querySelector("#filterCount");
 const themeSelect = document.querySelector("#themeSelect");
 const toast = document.querySelector("#toast");
 const heroMoodIcon = document.querySelector(".journal-flower");
+const heroTitle = document.querySelector(".journal-title");
+const heroSubtitle = document.querySelector(".journal-subtitle");
 
 const defaultBrowseState = {
   mood: "all",
@@ -180,7 +275,7 @@ plantButton.addEventListener("click", () => {
   renderFlowers();
   renderStats();
   renderAnalysis({ animate: true });
-  updateHeroMoodIcon(moodIcon, selectedMood);
+  updateHeroContent(moodIcon, selectedMood);
 
   noteInput.value = "";
   showMessage(
@@ -1376,11 +1471,18 @@ function downloadTextFile(text, fileName, fileType = "text/plain;charset=utf-8")
 }
 
 function initHeroMoodIcon() {
-  const moodKeys = Object.keys(moodIconMap);
+  const moodKeys = getHeroMoodKeys();
   const randomMood = getRandomItem(moodKeys) || "happy";
   const icon = getRandomMoodIcon(randomMood);
 
-  updateHeroMoodIcon(icon, randomMood);
+  updateHeroContent(icon, randomMood);
+}
+
+function updateHeroContent(icon, moodKey) {
+  const safeMoodKey = getSafeHeroMoodKey(moodKey);
+
+  updateHeroMoodIcon(icon, safeMoodKey);
+  updateHeroCopy(safeMoodKey);
 }
 
 function updateHeroMoodIcon(icon, moodKey) {
@@ -1395,6 +1497,26 @@ function updateHeroMoodIcon(icon, moodKey) {
   heroMoodIcon.textContent = icon || moodMap[safeMoodKey].emoji;
 }
 
+function updateHeroCopy(moodKey) {
+  if (!heroTitle || !heroSubtitle) {
+    return;
+  }
+
+  const copy = getRandomHeroCopy(moodKey);
+
+  heroTitle.textContent = copy.heroTitle;
+  heroSubtitle.textContent = copy.heroSubtitle;
+  refreshHeroCopyAnimation();
+}
+
+function refreshHeroCopyAnimation() {
+  [heroTitle, heroSubtitle].forEach((element) => {
+    element.classList.remove("journal-copy-refresh");
+    void element.offsetWidth;
+    element.classList.add("journal-copy-refresh");
+  });
+}
+
 function removeMoodIconClasses(element) {
   Object.keys(moodMap).forEach((moodKey) => {
     element.classList.remove(`mood-icon-${moodKey}`);
@@ -1405,6 +1527,27 @@ function getRandomMoodIcon(mood) {
   const icons = moodIconMap[mood] || moodIconMap.happy;
 
   return getRandomItem(icons) || moodMap.happy.emoji;
+}
+
+function getRandomHeroCopy(mood) {
+  const safeMoodKey = getSafeHeroMoodKey(mood);
+  const copyPool = HERO_COPY_POOLS[safeMoodKey];
+
+  return getRandomItem(copyPool) || HERO_COPY_POOLS.happy[0];
+}
+
+function getHeroMoodKeys() {
+  return Object.keys(moodIconMap).filter((moodKey) => {
+    return moodMap[moodKey] && HERO_COPY_POOLS[moodKey]?.length > 0;
+  });
+}
+
+function getSafeHeroMoodKey(moodKey) {
+  if (moodMap[moodKey] && moodIconMap[moodKey]?.length > 0 && HERO_COPY_POOLS[moodKey]?.length > 0) {
+    return moodKey;
+  }
+
+  return "happy";
 }
 
 function getFlowerMoodIcon(flower, mood) {

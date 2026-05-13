@@ -398,6 +398,16 @@ h1 {
   color: var(--muted);
 }
 
+.journal-title,
+.journal-subtitle {
+  transition: color 200ms ease, opacity 200ms ease, transform 200ms ease;
+}
+
+.journal-title.journal-copy-refresh,
+.journal-subtitle.journal-copy-refresh {
+  animation: heroCopyRefresh 420ms ease both;
+}
+
 .entry-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
@@ -1354,6 +1364,18 @@ input[type="search"]:focus {
   }
 }
 
+@keyframes heroCopyRefresh {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes heroTagIn {
   from {
     opacity: 0;
@@ -1986,6 +2008,7 @@ body[data-theme="pink"] .mood-excited {
   .hero-tags span,
   .journal-cover,
   .journal-flower,
+  .journal-copy-refresh,
   .flower-emoji,
   .mood-icon {
     animation: none !important;
