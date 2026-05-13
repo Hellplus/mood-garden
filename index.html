@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mood Garden 情绪花园 | 记录今天的心情</title>
+  <meta name="description" content="Mood Garden 情绪花园是一个使用 HTML、CSS 和 JavaScript 制作的治愈系情绪日记小作品，可以记录心情、生成花卡片、查看统计并导出日记和备份。">
+  <meta property="og:title" content="Mood Garden 情绪花园">
+  <meta property="og:description" content="一个治愈系情绪日记小花园，记录每天的心情、花语和情绪轨迹。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://hellplus.github.io/mood-garden/">
+  <meta name="theme-color" content="#fff7ec">
+  <title>Mood Garden 情绪花园 | 治愈系情绪日记</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -41,6 +47,25 @@
           <p class="journal-subtitle">一朵花，一句今天。</p>
         </div>
       </div>
+    </section>
+
+    <section class="release-panel glass-card" aria-labelledby="release-title">
+      <div class="release-copy">
+        <p class="section-kicker">About this garden</p>
+        <h2 id="release-title">一个保存在浏览器里的情绪小花园</h2>
+        <p>选择情绪、写下一句今天的心情，再种下一朵花。你可以浏览、筛选、搜索、排序，也可以导出日记或备份数据。</p>
+      </div>
+      <details class="guide-details">
+        <summary>查看使用说明</summary>
+        <ul>
+          <li>选择一个情绪，写下一句心情，然后点击“种下一朵花”。</li>
+          <li>使用筛选、搜索和排序整理历史花卡片。</li>
+          <li>“导出日记”会下载 txt 文本，“导出备份”会下载 JSON 数据。</li>
+          <li>“导入备份”可以合并或覆盖当前浏览器里的记录。</li>
+          <li>所有记录保存在当前浏览器的 localStorage 中，清空花园会删除当前浏览器里的记录。</li>
+        </ul>
+      </details>
+      <span class="version-badge" aria-label="当前项目版本">v1.6</span>
     </section>
 
     <div class="entry-layout">
@@ -190,6 +215,12 @@
 
       <div class="flower-list" id="flowerList"></div>
     </section>
+
+    <footer class="site-footer" aria-label="项目信息">
+      <strong>Mood Garden 情绪花园 v1.6</strong>
+      <span>数据保存在你的浏览器 localStorage 中。</span>
+      <span>仅用于个人记录，不提供心理诊断或医疗建议。</span>
+    </footer>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
