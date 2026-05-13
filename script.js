@@ -242,6 +242,13 @@ const toast = document.querySelector("#toast");
 const heroMoodIcon = document.querySelector(".journal-flower");
 const heroTitle = document.querySelector(".journal-title");
 const heroSubtitle = document.querySelector(".journal-subtitle");
+const mobileTabButtons = document.querySelectorAll("[data-mobile-tab]");
+const mobileSections = document.querySelectorAll("[data-mobile-section]");
+const mobileExportButton = document.querySelector("#mobileExportButton");
+const mobileExportBackupButton = document.querySelector("#mobileExportBackupButton");
+const mobileImportBackupButton = document.querySelector("#mobileImportBackupButton");
+const mobileImportModeSelect = document.querySelector("#mobileImportModeSelect");
+const mobileClearButton = document.querySelector("#mobileClearButton");
 
 // App state.
 const defaultBrowseState = {
@@ -249,6 +256,8 @@ const defaultBrowseState = {
   keyword: "",
   sort: "newest"
 };
+
+const mobileTabs = ["record", "garden", "analysis", "data"];
 
 const backupAppName = "Mood Garden";
 const backupVersion = "1.2";
@@ -272,6 +281,7 @@ applyTheme(loadTheme());
 initHeroMoodIcon();
 setActiveMoodButton(selectedMood);
 updateAllViews();
+initMobileTabs();
 
 moodOptions.addEventListener("click", (event) => {
   const button = event.target.closest(".mood-button");
@@ -377,6 +387,41 @@ importBackupInput.addEventListener("change", (event) => {
   handleBackupFileChange(event);
 });
 
+if (mobileExportButton) {
+  mobileExportButton.addEventListener("click", () => {
+    exportButton.click();
+  });
+}
+
+if (mobileExportBackupButton) {
+  mobileExportBackupButton.addEventListener("click", () => {
+    exportBackupButton.click();
+  });
+}
+
+if (mobileImportBackupButton) {
+  mobileImportBackupButton.addEventListener("click", () => {
+    syncDesktopImportMode();
+    importBackupInput.click();
+  });
+}
+
+if (mobileImportModeSelect) {
+  mobileImportModeSelect.addEventListener("change", () => {
+    syncDesktopImportMode();
+  });
+}
+
+importModeSelect.addEventListener("change", () => {
+  syncMobileImportMode();
+});
+
+if (mobileClearButton) {
+  mobileClearButton.addEventListener("click", () => {
+    clearButton.click();
+  });
+}
+
 clearButton.addEventListener("click", () => {
   if (flowers.length === 0) {
     showMessage("花园现在是空的，先种下一朵花吧。", "info");
@@ -478,6 +523,57 @@ function showToast(text, type = "info") {
   toastTimer = setTimeout(() => {
     toast.classList.remove("show");
   }, 2600);
+}
+
+// Mobile tab helpers only change what is visible on small screens.
+function initMobileTabs() {
+  switchMobileTab("record", { scrollToTop: false });
+
+  mobileTabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      switchMobileTab(button.dataset.mobileTab);
+    });
+  });
+}
+
+function switchMobileTab(tabName, options = {}) {
+  if (!mobileTabs.includes(tabName)) {
+    return;
+  }
+
+  mobileTabButtons.forEach((button) => {
+    const isActive = button.dataset.mobileTab === tabName;
+
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+
+  mobileSections.forEach((section) => {
+    section.classList.toggle("is-mobile-active", section.dataset.mobileSection === tabName);
+  });
+
+  if (options.scrollToTop !== false && isMobileLayout()) {
+    window.scrollTo({
+      top: 0,
+      behavior: shouldReduceMotion() ? "auto" : "smooth"
+    });
+  }
+}
+
+function isMobileLayout() {
+  return window.matchMedia("(max-width: 720px)").matches;
+}
+
+function syncMobileImportMode() {
+  if (mobileImportModeSelect) {
+    mobileImportModeSelect.value = importModeSelect.value;
+  }
+}
+
+function syncDesktopImportMode() {
+  if (mobileImportModeSelect) {
+    importModeSelect.value = mobileImportModeSelect.value;
+  }
 }
 
 // Rendering entry point: use this after data changes so all views stay in sync.
@@ -649,6 +745,11 @@ function renderFlowers(options = {}) {
   flowerList.innerHTML = "";
   flowerCount.textContent = `${flowers.length} 朵花`;
   clearButton.disabled = flowers.length === 0;
+
+  if (mobileClearButton) {
+    mobileClearButton.disabled = flowers.length === 0;
+  }
+
   renderFilterCount(visibleFlowers.length);
 
   if (flowers.length === 0) {
