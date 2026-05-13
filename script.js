@@ -80,6 +80,7 @@ const message = document.querySelector("#message");
 
 let selectedMood = "happy";
 let flowers = loadFlowers();
+let editingFlowerId = "";
 const addedMissingIds = addMissingFlowerIds();
 
 if (addedMissingIds) {
@@ -160,6 +161,7 @@ clearButton.addEventListener("click", () => {
   }
 
   flowers = [];
+  editingFlowerId = "";
   const cleared = clearSavedFlowers();
   renderFlowers();
   renderStats();
@@ -169,13 +171,29 @@ clearButton.addEventListener("click", () => {
 });
 
 flowerList.addEventListener("click", (event) => {
-  const button = event.target.closest(".delete-flower-button");
+  const saveEditButton = event.target.closest(".save-edit-button");
+  const cancelEditButton = event.target.closest(".cancel-edit-button");
+  const editButton = event.target.closest(".edit-flower-button");
+  const deleteButton = event.target.closest(".delete-flower-button");
 
-  if (!button) {
+  if (saveEditButton) {
+    saveEditedFlower(saveEditButton.dataset.id);
     return;
   }
 
-  deleteFlower(button.dataset.id);
+  if (cancelEditButton) {
+    cancelEditingFlower();
+    return;
+  }
+
+  if (editButton) {
+    startEditingFlower(editButton.dataset.id);
+    return;
+  }
+
+  if (deleteButton) {
+    deleteFlower(deleteButton.dataset.id);
+  }
 });
 
 function loadFlowers() {
@@ -250,6 +268,7 @@ function renderFlowers() {
   flowers.forEach((flower) => {
     const mood = moodMap[flower.mood] || moodMap.happy;
     const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
+    const isEditing = flower.id === editingFlowerId;
     const card = document.createElement("article");
 
     card.className = `flower-card ${mood.className}`;
@@ -260,16 +279,89 @@ function renderFlowers() {
         <span class="flower-date">创建于 ${flower.date || "未知日期"}</span>
       </div>
       <h3>${mood.name}</h3>
-      <p class="flower-note"></p>
+      ${isEditing
+        ? '<textarea class="flower-edit-input" rows="3" maxlength="80"></textarea>'
+        : '<p class="flower-note"></p>'}
       <p class="flower-copy"></p>
-      <button class="delete-flower-button" type="button">删除这一朵</button>
+      <div class="flower-card-actions">
+        ${isEditing
+          ? `
+            <button class="save-edit-button" type="button">保存修改</button>
+            <button class="cancel-edit-button" type="button">取消</button>
+          `
+          : `
+            <button class="edit-flower-button" type="button">编辑这一朵</button>
+            <button class="delete-flower-button" type="button">删除这一朵</button>
+          `}
+      </div>
     `;
 
-    card.querySelector(".flower-note").textContent = flower.note;
+    if (isEditing) {
+      card.querySelector(".flower-edit-input").value = flower.note || "";
+      card.querySelector(".save-edit-button").dataset.id = flower.id;
+      card.querySelector(".cancel-edit-button").dataset.id = flower.id;
+    } else {
+      card.querySelector(".flower-note").textContent = flower.note;
+      card.querySelector(".edit-flower-button").dataset.id = flower.id;
+      card.querySelector(".delete-flower-button").dataset.id = flower.id;
+    }
+
     card.querySelector(".flower-copy").textContent = flowerQuote;
-    card.querySelector(".delete-flower-button").dataset.id = flower.id;
     flowerList.appendChild(card);
   });
+}
+
+function startEditingFlower(flowerId) {
+  const flower = flowers.find((item) => item.id === flowerId);
+
+  if (!flower) {
+    message.textContent = "没有找到这朵花，先刷新页面再试试看。";
+    return;
+  }
+
+  editingFlowerId = flowerId;
+  renderFlowers();
+  message.textContent = "可以在卡片里修改这朵花的心情文字。";
+
+  const editInput = flowerList.querySelector(".flower-edit-input");
+
+  if (editInput) {
+    editInput.focus();
+  }
+}
+
+function cancelEditingFlower() {
+  editingFlowerId = "";
+  renderFlowers();
+  message.textContent = "这朵花保持原来的样子。";
+}
+
+function saveEditedFlower(flowerId) {
+  const flower = flowers.find((item) => item.id === flowerId);
+
+  if (!flower) {
+    message.textContent = "没有找到这朵花，先刷新页面再试试看。";
+    return;
+  }
+
+  const editInput = flowerList.querySelector(".flower-edit-input");
+  const nextNote = editInput ? editInput.value : "";
+  const trimmedNote = nextNote.trim();
+
+  if (!trimmedNote) {
+    message.textContent = "心情文字不能为空，这朵花还保留着原来的内容。";
+    return;
+  }
+
+  flower.note = trimmedNote;
+  editingFlowerId = "";
+  const saved = saveFlowers();
+
+  renderFlowers();
+  renderStats();
+  message.textContent = saved
+    ? "这朵花的心情文字已经更新好了。"
+    : "页面里的心情文字已更新，但浏览器暂时没能保存这次修改。";
 }
 
 function deleteFlower(flowerId) {

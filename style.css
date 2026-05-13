@@ -488,6 +488,14 @@ textarea:focus {
   font-weight: 700;
 }
 
+.flower-edit-input {
+  position: relative;
+  z-index: 1;
+  min-height: 92px;
+  margin-bottom: 16px;
+  background: rgba(255, 255, 255, 0.54);
+}
+
 .flower-copy {
   margin: 0;
   padding-top: 12px;
@@ -505,15 +513,25 @@ textarea:focus {
   font-weight: 700;
 }
 
-.delete-flower-button {
+.flower-card-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.edit-flower-button,
+.delete-flower-button,
+.save-edit-button,
+.cancel-edit-button {
   position: relative;
   z-index: 1;
   min-height: 34px;
-  margin-top: 18px;
   padding: 0 12px;
-  border: 1px solid rgba(123, 78, 78, 0.18);
   border-radius: 999px;
-  color: #8d6b68;
   background: rgba(255, 255, 255, 0.42);
   cursor: pointer;
   font-size: 0.88rem;
@@ -521,7 +539,28 @@ textarea:focus {
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
 }
 
-.delete-flower-button:hover {
+.edit-flower-button,
+.save-edit-button {
+  border: 1px solid rgba(71, 125, 84, 0.22);
+  color: #426d4b;
+}
+
+.edit-flower-button:hover,
+.save-edit-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(71, 125, 84, 0.42);
+  background: rgba(244, 252, 240, 0.9);
+  box-shadow: 0 10px 20px rgba(65, 78, 62, 0.1);
+}
+
+.delete-flower-button,
+.cancel-edit-button {
+  border: 1px solid rgba(123, 78, 78, 0.18);
+  color: #8d6b68;
+}
+
+.delete-flower-button:hover,
+.cancel-edit-button:hover {
   transform: translateY(-2px);
   border-color: rgba(123, 78, 78, 0.42);
   background: rgba(255, 246, 244, 0.9);
