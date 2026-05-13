@@ -86,6 +86,11 @@ const flowerCount = document.querySelector("#flowerCount");
 const totalCount = document.querySelector("#totalCount");
 const statsList = document.querySelector("#statsList");
 const gardenNote = document.querySelector("#gardenNote");
+const analysisSummary = document.querySelector("#analysisSummary");
+const weekChart = document.querySelector("#weekChart");
+const moodDistribution = document.querySelector("#moodDistribution");
+const topMood = document.querySelector("#topMood");
+const streakDays = document.querySelector("#streakDays");
 const message = document.querySelector("#message");
 const moodFilter = document.querySelector("#moodFilter");
 const searchInput = document.querySelector("#searchInput");
@@ -121,6 +126,7 @@ if (addedMissingData) {
 applyTheme(loadTheme());
 renderFlowers();
 renderStats();
+renderAnalysis();
 
 moodOptions.addEventListener("click", (event) => {
   const button = event.target.closest(".mood-button");
@@ -159,6 +165,7 @@ plantButton.addEventListener("click", () => {
   const saved = saveFlowers();
   renderFlowers();
   renderStats();
+  renderAnalysis();
 
   noteInput.value = "";
   showMessage(
@@ -245,6 +252,7 @@ clearButton.addEventListener("click", () => {
   const cleared = clearSavedFlowers();
   renderFlowers();
   renderStats();
+  renderAnalysis();
   showMessage(
     cleared
       ? "花园已经清空。什么时候想重新开始，都可以再种下一朵花。"
@@ -631,6 +639,7 @@ function saveEditedFlower(flowerId) {
 
   renderFlowers();
   renderStats();
+  renderAnalysis();
   showMessage(
     saved
       ? "这朵花的心情文字已经更新好了。"
@@ -673,6 +682,7 @@ function removeFlowerById(flowerId) {
 
   renderFlowers();
   renderStats();
+  renderAnalysis();
   showMessage(
     saved
       ? "已经删除这一朵花，花园记录也同步更新了。"
@@ -707,6 +717,332 @@ function renderStats() {
 
     statsList.appendChild(item);
   });
+}
+
+function renderAnalysis() {
+  const savedFlowers = loadFlowers();
+  const recentDays = getRecentSevenDays();
+  const weekCounts = getRecentSevenDayCounts(savedFlowers, recentDays);
+  const weekDateKeys = new Set(recentDays.map((day) => day.key));
+  const weekFlowers = savedFlowers.filter((flower) => {
+    return weekDateKeys.has(getFlowerDateKey(flower));
+  });
+  const moodCounts = getMoodCounts(savedFlowers);
+  const topMoods = getTopMoods(moodCounts);
+  const weekTopMoods = getTopMoods(getMoodCounts(weekFlowers));
+  const streak = getRecordStreak(savedFlowers);
+
+  analysisSummary.textContent = createWeeklyReview(weekFlowers.length, weekTopMoods);
+  renderWeekChart(weekCounts, weekFlowers.length);
+  renderMoodDistribution(moodCounts, savedFlowers.length);
+  renderTopMood(topMoods, savedFlowers.length);
+  renderStreak(streak, savedFlowers.length);
+}
+
+function getRecentSevenDays() {
+  const days = [];
+  const today = getStartOfDay(new Date());
+
+  for (let index = 6; index >= 0; index -= 1) {
+    const date = new Date(today);
+
+    date.setDate(today.getDate() - index);
+    days.push({
+      key: getDateKey(date),
+      label: `${date.getMonth() + 1}/${date.getDate()}`,
+      date
+    });
+  }
+
+  return days;
+}
+
+function getRecentSevenDayCounts(flowers, recentDays) {
+  return recentDays.map((day) => {
+    const count = flowers.filter((flower) => {
+      return getFlowerDateKey(flower) === day.key;
+    }).length;
+
+    return { ...day, count };
+  });
+}
+
+function getMoodCounts(records) {
+  const counts = {};
+
+  Object.keys(moodMap).forEach((moodKey) => {
+    counts[moodKey] = 0;
+  });
+
+  records.forEach((record) => {
+    if (moodMap[record.mood]) {
+      counts[record.mood] += 1;
+    }
+  });
+
+  return counts;
+}
+
+function getTopMoods(moodCounts) {
+  const maxCount = Math.max(...Object.values(moodCounts));
+
+  if (maxCount <= 0) {
+    return [];
+  }
+
+  return Object.keys(moodCounts)
+    .filter((moodKey) => moodCounts[moodKey] === maxCount)
+    .map((moodKey) => {
+      return {
+        key: moodKey,
+        count: moodCounts[moodKey],
+        mood: moodMap[moodKey]
+      };
+    });
+}
+
+function getRecordStreak(records) {
+  const dateKeys = records
+    .map((record) => getFlowerDateKey(record))
+    .filter(Boolean);
+  const uniqueDateKeys = [...new Set(dateKeys)].sort();
+
+  if (uniqueDateKeys.length === 0) {
+    return {
+      count: 0,
+      latestKey: "",
+      latestDate: null,
+      isLatestToday: false
+    };
+  }
+
+  const latestKey = uniqueDateKeys[uniqueDateKeys.length - 1];
+  const latestDate = getDateFromKey(latestKey);
+  const todayKey = getDateKey(new Date());
+  const dateSet = new Set(uniqueDateKeys);
+  let currentDate = new Date(latestDate);
+  let count = 0;
+
+  while (dateSet.has(getDateKey(currentDate))) {
+    count += 1;
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+
+  return {
+    count,
+    latestKey,
+    latestDate,
+    isLatestToday: latestKey === todayKey
+  };
+}
+
+function renderWeekChart(weekCounts, totalCountValue) {
+  weekChart.innerHTML = "";
+
+  if (totalCountValue === 0) {
+    weekChart.appendChild(createAnalysisEmpty("花园还在等第一朵花。再多种几朵，最近 7 天的节奏就会慢慢出现。"));
+    return;
+  }
+
+  const maxCount = Math.max(...weekCounts.map((day) => day.count), 1);
+
+  weekCounts.forEach((day) => {
+    const item = document.createElement("div");
+    const count = document.createElement("span");
+    const bar = document.createElement("div");
+    const fill = document.createElement("span");
+    const label = document.createElement("span");
+    const height = day.count === 0 ? 0 : Math.max(8, Math.round((day.count / maxCount) * 100));
+
+    item.className = "week-day";
+    count.className = "week-count";
+    count.textContent = `${day.count}朵`;
+    bar.className = "week-bar";
+    fill.className = day.count > 0 ? "week-bar-fill has-record" : "week-bar-fill";
+    fill.style.setProperty("--bar-height", `${height}%`);
+    label.className = "week-label";
+    label.textContent = day.label;
+
+    bar.appendChild(fill);
+    item.appendChild(count);
+    item.appendChild(bar);
+    item.appendChild(label);
+    weekChart.appendChild(item);
+  });
+}
+
+function renderMoodDistribution(moodCounts, totalCountValue) {
+  moodDistribution.innerHTML = "";
+
+  if (totalCountValue === 0) {
+    moodDistribution.appendChild(createAnalysisEmpty("等花园里有了记录，就能看到不同情绪出现的比例。"));
+    return;
+  }
+
+  Object.keys(moodMap).forEach((moodKey) => {
+    const mood = moodMap[moodKey];
+    const count = moodCounts[moodKey] || 0;
+    const ratio = totalCountValue === 0 ? 0 : Math.round((count / totalCountValue) * 100);
+    const item = document.createElement("div");
+    const label = document.createElement("span");
+    const ratioTrack = document.createElement("div");
+    const ratioFill = document.createElement("span");
+    const countText = document.createElement("span");
+
+    item.className = "mood-distribution-item";
+    label.className = "mood-distribution-label";
+    label.textContent = `${mood.emoji} ${mood.name}`;
+    ratioTrack.className = "mood-ratio";
+    ratioFill.className = "mood-ratio-fill";
+    ratioFill.style.setProperty("--ratio-width", `${ratio}%`);
+    countText.className = "mood-distribution-count";
+    countText.textContent = `${count} 朵`;
+
+    ratioTrack.appendChild(ratioFill);
+    item.appendChild(label);
+    item.appendChild(ratioTrack);
+    item.appendChild(countText);
+    moodDistribution.appendChild(item);
+  });
+}
+
+function renderTopMood(topMoods, totalCountValue) {
+  topMood.innerHTML = "";
+
+  if (totalCountValue === 0 || topMoods.length === 0) {
+    topMood.appendChild(createAnalysisEmpty("再多种几朵花，最常出现的情绪会在这里慢慢浮现。"));
+    return;
+  }
+
+  const box = document.createElement("div");
+  const big = document.createElement("strong");
+  const text = document.createElement("p");
+  const moodNames = topMoods.map((item) => item.mood.name).join("、");
+  const moodEmojis = topMoods.map((item) => item.mood.emoji).join(" ");
+
+  box.className = "top-mood-box";
+  big.className = "analysis-big";
+  big.textContent = `${moodEmojis} ${moodNames}`;
+  text.className = "analysis-text";
+  text.textContent = topMoods.length > 1
+    ? `这些情绪并列出现最多，各有 ${topMoods[0].count} 朵。`
+    : `这是目前花园里出现最多的情绪，一共有 ${topMoods[0].count} 朵。`;
+
+  box.appendChild(big);
+  box.appendChild(text);
+  topMood.appendChild(box);
+}
+
+function renderStreak(streak, totalCountValue) {
+  streakDays.innerHTML = "";
+
+  if (totalCountValue === 0 || streak.count === 0) {
+    streakDays.appendChild(createAnalysisEmpty("当你在不同日期种下花，这里会记录花园连续被照顾的天数。"));
+    return;
+  }
+
+  const box = document.createElement("div");
+  const big = document.createElement("strong");
+  const text = document.createElement("p");
+  const latestText = streak.latestDate ? formatShortDate(streak.latestDate) : "最近一次记录";
+
+  box.className = "streak-box";
+  big.className = "analysis-big";
+  big.textContent = `${streak.count} 天`;
+  text.className = "analysis-text";
+  text.textContent = streak.isLatestToday
+    ? "你最近一直在温柔地照看这座花园。"
+    : `最近一次记录在 ${latestText}，那段连续记录已经被好好保存。`;
+
+  box.appendChild(big);
+  box.appendChild(text);
+  streakDays.appendChild(box);
+}
+
+function createAnalysisEmpty(text) {
+  const empty = document.createElement("p");
+
+  empty.className = "analysis-empty";
+  empty.textContent = text;
+
+  return empty;
+}
+
+function createWeeklyReview(weekTotal, weekTopMoods) {
+  if (weekTotal === 0) {
+    return "这 7 天花园比较安静。等你愿意的时候，再种下一朵也很好。";
+  }
+
+  if (weekTotal < 3) {
+    return `这 7 天你记录了 ${weekTotal} 朵花。再多种几朵，花园就能长出更清晰的情绪轨迹。`;
+  }
+
+  const topMoodText = getTopMoodText(weekTopMoods);
+
+  return `这一周你记录了 ${weekTotal} 朵花，${topMoodText}出现得比较多。你的花园正在慢慢积累属于自己的节奏。`;
+}
+
+function getTopMoodText(topMoods) {
+  if (topMoods.length === 0) {
+    return "不同情绪";
+  }
+
+  return topMoods.map((item) => item.mood.name).join("、");
+}
+
+function getFlowerDateKey(flower) {
+  const createdAt = Number(flower.createdAt);
+
+  if (Number.isFinite(createdAt)) {
+    const createdDate = new Date(createdAt);
+
+    if (!Number.isNaN(createdDate.getTime())) {
+      return getDateKey(createdDate);
+    }
+  }
+
+  const parsedDate = parseFlowerDateText(flower.date);
+  return parsedDate ? getDateKey(parsedDate) : "";
+}
+
+function parseFlowerDateText(dateText) {
+  if (typeof dateText !== "string" || !dateText.trim()) {
+    return null;
+  }
+
+  const chineseMatch = dateText.match(/(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
+  const simpleMatch = dateText.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  const match = chineseMatch || simpleMatch;
+
+  if (match) {
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+
+  const parsed = new Date(dateText);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getStartOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function getDateKey(date) {
+  const localDate = getStartOfDay(date);
+  const year = localDate.getFullYear();
+  const month = String(localDate.getMonth() + 1).padStart(2, "0");
+  const day = String(localDate.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getDateFromKey(dateKey) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+
+  return new Date(year, month - 1, day);
+}
+
+function formatShortDate(date) {
+  return `${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
 function createDiaryText(savedFlowers) {
@@ -958,6 +1294,7 @@ function importBackupRecords(importedFlowers, importMode) {
 
   renderFlowers();
   renderStats();
+  renderAnalysis();
   showMessage(
     saved
       ? "备份导入成功，花园已经刷新好了。"

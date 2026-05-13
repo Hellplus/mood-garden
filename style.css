@@ -135,6 +135,7 @@ p {
 .hero,
 .entry-panel,
 .overview-panel,
+.analysis-panel,
 .browse-panel,
 .history {
   animation: sectionEnter 520ms ease both;
@@ -146,6 +147,10 @@ p {
 
 .overview-panel {
   animation-delay: 120ms;
+}
+
+.analysis-panel {
+  animation-delay: 145ms;
 }
 
 .browse-panel {
@@ -376,11 +381,13 @@ h1 {
 
 .panel,
 .stats,
+.analysis-panel,
 .browse-panel,
 .history {
   padding: 26px;
 }
 
+.analysis-panel,
 .browse-panel,
 .history {
   margin-top: 24px;
@@ -388,6 +395,7 @@ h1 {
 
 .panel h2,
 .stats h2,
+.analysis-panel h2,
 .browse-panel h2,
 .history h2 {
   margin-bottom: 0;
@@ -577,6 +585,168 @@ input[type="search"]:focus {
   border-radius: 16px;
   color: var(--muted);
   background: rgba(255, 255, 255, 0.38);
+  line-height: 1.7;
+}
+
+.analysis-summary {
+  margin: -4px 0 20px;
+  padding: 16px 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 18px;
+  color: var(--soft-ink);
+  background:
+    radial-gradient(circle at 8% 20%, rgba(255, 229, 184, 0.32), transparent 28%),
+    rgba(255, 255, 255, 0.38);
+  line-height: 1.75;
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.analysis-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.36);
+  box-shadow: 0 12px 26px rgba(67, 73, 63, 0.06);
+}
+
+.analysis-card h3 {
+  margin: 0 0 16px;
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.analysis-empty {
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 16px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.28);
+  line-height: 1.7;
+}
+
+.week-chart .analysis-empty {
+  grid-column: 1 / -1;
+  align-self: center;
+}
+
+.week-chart {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: end;
+  gap: 10px;
+  min-height: 180px;
+}
+
+.week-day {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.week-bar {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 34px;
+  height: 112px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.48);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.week-bar-fill {
+  width: 100%;
+  height: var(--bar-height, 0%);
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--accent-2), var(--accent));
+}
+
+.week-bar-fill.has-record {
+  min-height: 6px;
+}
+
+.week-count,
+.week-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.week-count {
+  color: var(--accent);
+}
+
+.mood-distribution {
+  display: grid;
+  gap: 12px;
+}
+
+.mood-distribution-item {
+  display: grid;
+  grid-template-columns: minmax(82px, auto) 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.mood-distribution-label,
+.mood-distribution-count {
+  color: var(--soft-ink);
+  font-weight: 800;
+}
+
+.mood-distribution-count {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.mood-ratio {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.48);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.mood-ratio-fill {
+  width: var(--ratio-width, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+.top-mood-box,
+.streak-box {
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  min-height: 142px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.analysis-big {
+  color: var(--accent);
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.analysis-text {
+  margin: 0;
+  color: var(--muted);
   line-height: 1.7;
 }
 
@@ -1266,10 +1436,20 @@ body[data-theme="dark"] .count-pill,
 body[data-theme="dark"] .mood-button,
 body[data-theme="dark"] .stats-item,
 body[data-theme="dark"] .garden-note,
+body[data-theme="dark"] .analysis-summary,
+body[data-theme="dark"] .analysis-card,
+body[data-theme="dark"] .analysis-empty,
+body[data-theme="dark"] .top-mood-box,
+body[data-theme="dark"] .streak-box,
 body[data-theme="dark"] .action-group,
 body[data-theme="dark"] .import-mode-field,
 body[data-theme="dark"] .empty {
   background: rgba(255, 255, 255, 0.08);
+}
+
+body[data-theme="dark"] .week-bar,
+body[data-theme="dark"] .mood-ratio {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 body[data-theme="dark"] textarea,
@@ -1406,6 +1586,7 @@ body[data-theme="pink"] .mood-excited {
   .hero,
   .panel,
   .stats,
+  .analysis-panel,
   .browse-panel,
   .history {
     padding: 22px 18px;
@@ -1426,6 +1607,10 @@ body[data-theme="pink"] .mood-excited {
 
   .browse-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analysis-grid {
+    grid-template-columns: 1fr;
   }
 
   .section-heading {
@@ -1474,8 +1659,18 @@ body[data-theme="pink"] .mood-excited {
 
   .mood-options,
   .stats-list,
+  .analysis-grid,
   .browse-controls {
     grid-template-columns: 1fr;
+  }
+
+  .week-chart {
+    gap: 7px;
+  }
+
+  .mood-distribution-item {
+    grid-template-columns: 1fr;
+    gap: 7px;
   }
 
   .reset-filters-button,
