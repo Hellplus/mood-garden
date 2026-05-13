@@ -465,6 +465,131 @@ p {
   animation: iconExcitedSpark 3800ms ease-in-out infinite;
 }
 
+.icon-animate-bloom,
+.icon-animate-sun,
+.icon-animate-twinkle,
+.icon-animate-rainbow,
+.icon-animate-leaf,
+.icon-animate-grow,
+.icon-animate-bubble,
+.icon-animate-rain,
+.icon-animate-cloud,
+.icon-animate-drop,
+.icon-animate-swirl,
+.icon-animate-moon,
+.icon-animate-night,
+.icon-animate-candle,
+.icon-animate-sleep,
+.icon-animate-fire,
+.icon-animate-balloon,
+.icon-animate-search,
+.icon-animate-butterfly,
+.icon-animate-rocket,
+.icon-animate-bounce,
+.icon-animate-soft {
+  display: inline-block;
+  transform-origin: center bottom;
+  will-change: transform, opacity, filter;
+}
+
+.icon-animate-bloom {
+  animation: iconBloom 3400ms ease-in-out infinite;
+}
+
+.icon-animate-sun {
+  animation: iconSunGlow 3600ms ease-in-out infinite;
+}
+
+.icon-animate-twinkle {
+  animation: iconTwinkle 2600ms ease-in-out infinite;
+}
+
+.icon-animate-rainbow {
+  animation: iconRainbowLift 3800ms ease-in-out infinite;
+}
+
+.icon-animate-leaf {
+  animation: iconLeafSway 3600ms ease-in-out infinite;
+}
+
+.icon-animate-grow {
+  animation: iconPlantGrow 4200ms ease-in-out infinite;
+}
+
+.icon-animate-bubble {
+  animation: iconBubbleFloat 3200ms ease-in-out infinite;
+}
+
+.icon-animate-rain {
+  animation: iconRainFall 3000ms ease-in-out infinite;
+}
+
+.icon-animate-cloud {
+  animation: iconCloudDrift 4600ms ease-in-out infinite;
+}
+
+.icon-animate-drop {
+  animation: iconDropFall 2800ms ease-in-out infinite;
+}
+
+.icon-animate-swirl {
+  animation: iconSwirlTurn 3600ms ease-in-out infinite;
+}
+
+.icon-animate-moon {
+  animation: iconMoonBreath 4600ms ease-in-out infinite;
+}
+
+.icon-animate-night {
+  animation: iconNightShimmer 4200ms ease-in-out infinite;
+}
+
+.icon-animate-candle {
+  animation: iconCandleFlicker 3000ms ease-in-out infinite;
+}
+
+.icon-animate-sleep {
+  animation: iconSleepFloat 4400ms ease-in-out infinite;
+}
+
+.icon-animate-fire {
+  animation: iconFireFlicker 2600ms ease-in-out infinite;
+}
+
+.icon-animate-balloon {
+  animation: iconBalloonFloat 3800ms ease-in-out infinite;
+}
+
+.icon-animate-search {
+  animation: iconSearchPulse 3600ms ease-in-out infinite;
+}
+
+.icon-animate-butterfly {
+  animation: iconButterflyFlutter 2400ms ease-in-out infinite;
+}
+
+.icon-animate-rocket {
+  animation: iconRocketRise 3000ms ease-in-out infinite;
+}
+
+.icon-animate-bounce {
+  animation: iconHappyBounce 3000ms ease-in-out infinite;
+}
+
+.icon-animate-soft {
+  animation: iconSoftPulse 4200ms ease-in-out infinite;
+}
+
+.icon-animate-light {
+  animation-duration: 5200ms;
+}
+
+.stats-icon,
+.distribution-icon,
+.top-mood-icon {
+  margin-right: 4px;
+}
+
 .journal-cover strong {
   font-size: 1.2rem;
 }
@@ -894,6 +1019,12 @@ input[type="search"]:focus {
 .mood-distribution-count {
   color: var(--soft-ink);
   font-weight: 800;
+}
+
+.mood-distribution-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .mood-distribution-count {
@@ -1700,6 +1831,325 @@ input[type="search"]:focus {
   }
 }
 
+@keyframes iconBloom {
+  0%,
+  100% {
+    filter: drop-shadow(0 8px 10px rgba(210, 129, 118, 0.16));
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+
+  42% {
+    filter: drop-shadow(0 13px 16px rgba(210, 129, 118, 0.28));
+    transform: translateY(-3px) scale(1.12) rotate(3deg);
+  }
+
+  70% {
+    transform: translateY(1px) scale(0.98) rotate(-1deg);
+  }
+}
+
+@keyframes iconSunGlow {
+  0%,
+  100% {
+    filter: drop-shadow(0 6px 10px rgba(230, 177, 72, 0.22));
+    transform: scale(1);
+  }
+
+  50% {
+    filter: drop-shadow(0 0 18px rgba(240, 190, 78, 0.5));
+    transform: scale(1.08);
+  }
+}
+
+@keyframes iconTwinkle {
+  0%,
+  100% {
+    filter: drop-shadow(0 5px 8px rgba(220, 176, 82, 0.18));
+    opacity: 0.82;
+    transform: scale(0.96) rotate(0deg);
+  }
+
+  38% {
+    filter: drop-shadow(0 0 18px rgba(240, 196, 90, 0.58));
+    opacity: 1;
+    transform: scale(1.16) rotate(7deg);
+  }
+
+  64% {
+    opacity: 0.9;
+    transform: scale(1.02) rotate(-4deg);
+  }
+}
+
+@keyframes iconRainbowLift {
+  0%,
+  100% {
+    filter: saturate(1) drop-shadow(0 7px 10px rgba(140, 120, 196, 0.16));
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    filter: saturate(1.28) drop-shadow(0 12px 16px rgba(140, 120, 196, 0.26));
+    transform: translateY(-5px) scale(1.05);
+  }
+}
+
+@keyframes iconLeafSway {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+
+  45% {
+    transform: translateY(-3px) rotate(7deg);
+  }
+
+  72% {
+    transform: translateY(1px) rotate(-5deg);
+  }
+}
+
+@keyframes iconPlantGrow {
+  0%,
+  100% {
+    filter: drop-shadow(0 7px 9px rgba(78, 138, 94, 0.16));
+    transform: translateY(0) scaleY(1);
+  }
+
+  42% {
+    filter: drop-shadow(0 12px 14px rgba(78, 138, 94, 0.26));
+    transform: translateY(-4px) scaleY(1.1);
+  }
+
+  70% {
+    transform: translateY(1px) scaleY(0.98);
+  }
+}
+
+@keyframes iconBubbleFloat {
+  0%,
+  100% {
+    opacity: 0.82;
+    transform: translateY(3px) translateX(0) scale(0.98);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-6px) translateX(3px) scale(1.08);
+  }
+}
+
+@keyframes iconRainFall {
+  0%,
+  100% {
+    opacity: 0.9;
+    transform: translateY(-1px) translateX(0);
+  }
+
+  46% {
+    opacity: 1;
+    transform: translateY(5px) translateX(1px);
+  }
+
+  72% {
+    transform: translateY(1px) translateX(-2px);
+  }
+}
+
+@keyframes iconCloudDrift {
+  0%,
+  100% {
+    opacity: 0.88;
+    transform: translateX(-4px) translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateX(5px) translateY(-2px);
+  }
+}
+
+@keyframes iconDropFall {
+  0%,
+  100% {
+    opacity: 0.86;
+    transform: translateY(-4px) scale(0.98);
+  }
+
+  48% {
+    opacity: 1;
+    transform: translateY(5px) scale(1.08);
+  }
+}
+
+@keyframes iconSwirlTurn {
+  0%,
+  100% {
+    opacity: 0.9;
+    transform: rotate(-8deg) scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: rotate(12deg) scale(1.06);
+  }
+}
+
+@keyframes iconMoonBreath {
+  0%,
+  100% {
+    filter: drop-shadow(0 6px 10px rgba(142, 132, 190, 0.18));
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    filter: drop-shadow(0 10px 16px rgba(142, 132, 190, 0.3));
+    transform: translateY(3px) scale(1.08);
+  }
+}
+
+@keyframes iconNightShimmer {
+  0%,
+  100% {
+    filter: drop-shadow(0 6px 9px rgba(118, 112, 180, 0.16));
+    opacity: 0.86;
+    transform: scale(1);
+  }
+
+  45% {
+    filter: drop-shadow(0 0 15px rgba(154, 146, 216, 0.42));
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes iconCandleFlicker {
+  0%,
+  100% {
+    filter: drop-shadow(0 5px 9px rgba(220, 158, 95, 0.18));
+    transform: translateY(0) rotate(-1deg) scale(1);
+  }
+
+  35% {
+    filter: drop-shadow(0 0 15px rgba(226, 164, 94, 0.42));
+    transform: translateY(-2px) rotate(2deg) scale(1.06);
+  }
+
+  68% {
+    transform: translateY(1px) rotate(-2deg) scale(0.99);
+  }
+}
+
+@keyframes iconSleepFloat {
+  0%,
+  100% {
+    opacity: 0.82;
+    transform: translateY(2px) scale(0.98);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.04);
+  }
+}
+
+@keyframes iconFireFlicker {
+  0%,
+  100% {
+    filter: drop-shadow(0 6px 10px rgba(222, 110, 76, 0.2));
+    transform: translateY(0) scale(1) rotate(-2deg);
+  }
+
+  38% {
+    filter: drop-shadow(0 0 18px rgba(232, 112, 72, 0.5));
+    transform: translateY(-4px) scale(1.12) rotate(4deg);
+  }
+
+  70% {
+    transform: translateY(1px) scale(1.02) rotate(-3deg);
+  }
+}
+
+@keyframes iconBalloonFloat {
+  0%,
+  100% {
+    transform: translateY(3px) rotate(-2deg);
+  }
+
+  50% {
+    transform: translateY(-8px) rotate(3deg);
+  }
+}
+
+@keyframes iconSearchPulse {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1) rotate(0deg);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.08) rotate(-5deg);
+  }
+}
+
+@keyframes iconButterflyFlutter {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-5deg) scaleX(1);
+  }
+
+  45% {
+    transform: translateY(-5px) rotate(7deg) scaleX(1.12);
+  }
+
+  70% {
+    transform: translateY(-1px) rotate(-3deg) scaleX(0.96);
+  }
+}
+
+@keyframes iconRocketRise {
+  0%,
+  100% {
+    filter: drop-shadow(0 6px 9px rgba(112, 128, 190, 0.18));
+    transform: translateY(3px) rotate(-2deg);
+  }
+
+  50% {
+    filter: drop-shadow(0 12px 18px rgba(112, 128, 190, 0.3));
+    transform: translateY(-8px) rotate(3deg);
+  }
+}
+
+@keyframes iconHappyBounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  42% {
+    transform: translateY(-5px) scale(1.08);
+  }
+
+  70% {
+    transform: translateY(1px) scale(0.98);
+  }
+}
+
+@keyframes iconSoftPulse {
+  0%,
+  100% {
+    opacity: 0.9;
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.04);
+  }
+}
+
 @keyframes analysisFadeUp {
   from {
     opacity: 0;
@@ -2164,6 +2614,7 @@ body[data-theme="pink"] .mood-excited {
   .journal-flower,
   .journal-copy-refresh,
   .flower-emoji,
+  [class*="icon-animate-"],
   .mood-icon {
     animation: none !important;
   }
@@ -2194,6 +2645,7 @@ body[data-theme="pink"] .mood-excited {
 
   .journal-flower,
   .flower-emoji,
+  [class*="icon-animate-"],
   .mood-icon {
     transform: none !important;
     will-change: auto !important;
