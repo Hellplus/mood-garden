@@ -70,6 +70,7 @@ const moodOptions = document.querySelector("#moodOptions");
 const noteInput = document.querySelector("#noteInput");
 const plantButton = document.querySelector("#plantButton");
 const clearButton = document.querySelector("#clearButton");
+const exportButton = document.querySelector("#exportButton");
 const flowerList = document.querySelector("#flowerList");
 const flowerCount = document.querySelector("#flowerCount");
 const totalCount = document.querySelector("#totalCount");
@@ -79,6 +80,11 @@ const message = document.querySelector("#message");
 
 let selectedMood = "happy";
 let flowers = loadFlowers();
+const addedMissingIds = addMissingFlowerIds();
+
+if (addedMissingIds) {
+  saveFlowers();
+}
 
 renderFlowers();
 renderStats();
@@ -125,6 +131,21 @@ plantButton.addEventListener("click", () => {
     : "这朵花已经显示出来了，但浏览器暂时没能保存它。";
 });
 
+exportButton.addEventListener("click", () => {
+  const savedFlowers = loadFlowers();
+
+  if (savedFlowers.length === 0) {
+    message.textContent = "花园里还没有花，先种下一朵，再导出属于你的情绪日记吧。";
+    return;
+  }
+
+  const diaryText = createDiaryText(savedFlowers);
+  const fileName = createDiaryFileName(new Date());
+
+  downloadTextFile(diaryText, fileName);
+  message.textContent = "情绪日记已经整理好了，正在为你下载。";
+});
+
 clearButton.addEventListener("click", () => {
   if (flowers.length === 0) {
     message.textContent = "花园现在是空的，先种下一朵花吧。";
@@ -145,6 +166,16 @@ clearButton.addEventListener("click", () => {
   message.textContent = cleared
     ? "花园已经清空。什么时候想重新开始，都可以再种下一朵花。"
     : "页面里的花园已清空，但浏览器暂时没能清除本地记录。";
+});
+
+flowerList.addEventListener("click", (event) => {
+  const button = event.target.closest(".delete-flower-button");
+
+  if (!button) {
+    return;
+  }
+
+  deleteFlower(button.dataset.id);
 });
 
 function loadFlowers() {
@@ -190,6 +221,19 @@ function clearSavedFlowers() {
   }
 }
 
+function addMissingFlowerIds() {
+  let changed = false;
+
+  flowers.forEach((flower) => {
+    if (!flower.id) {
+      flower.id = createFlowerId();
+      changed = true;
+    }
+  });
+
+  return changed;
+}
+
 function renderFlowers() {
   flowerList.innerHTML = "";
   flowerCount.textContent = `${flowers.length} 朵花`;
@@ -218,12 +262,32 @@ function renderFlowers() {
       <h3>${mood.name}</h3>
       <p class="flower-note"></p>
       <p class="flower-copy"></p>
+      <button class="delete-flower-button" type="button">删除这一朵</button>
     `;
 
     card.querySelector(".flower-note").textContent = flower.note;
     card.querySelector(".flower-copy").textContent = flowerQuote;
+    card.querySelector(".delete-flower-button").dataset.id = flower.id;
     flowerList.appendChild(card);
   });
+}
+
+function deleteFlower(flowerId) {
+  const shouldDelete = confirm("确定要删除这一朵花吗？这个操作不能撤销。");
+
+  if (!shouldDelete) {
+    message.textContent = "这朵花还在，已经帮你保留下来了。";
+    return;
+  }
+
+  flowers = flowers.filter((flower) => flower.id !== flowerId);
+  const saved = saveFlowers();
+
+  renderFlowers();
+  renderStats();
+  message.textContent = saved
+    ? "已经删除这一朵花，花园记录也同步更新了。"
+    : "页面里的花已删除，但浏览器暂时没能保存这次变化。";
 }
 
 function renderStats() {
@@ -246,6 +310,51 @@ function renderStats() {
 
     statsList.appendChild(item);
   });
+}
+
+function createDiaryText(savedFlowers) {
+  const lines = [
+    "Mood Garden 情绪花园日记",
+    `导出日期：${formatDate(new Date())}`,
+    `总花朵数量：${savedFlowers.length} 朵`,
+    "",
+    "记录列表",
+    "--------------------"
+  ];
+
+  savedFlowers.forEach((flower, index) => {
+    const mood = moodMap[flower.mood] || moodMap.happy;
+    const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
+
+    lines.push(
+      `${index + 1}. 创建日期：${flower.date || "未知日期"}`,
+      `情绪：${mood.emoji} ${mood.name}`,
+      `心情：${flower.note || "没有留下文字"}`,
+      `随机花语：${flowerQuote}`,
+      ""
+    );
+  });
+
+  return lines.join("\n");
+}
+
+function createDiaryFileName(date) {
+  return `mood-garden-diary-${formatDateForFileName(date)}.txt`;
+}
+
+function downloadTextFile(text, fileName) {
+  const file = new Blob(["\uFEFF", text], {
+    type: "text/plain;charset=utf-8"
+  });
+  const link = document.createElement("a");
+  const fileUrl = URL.createObjectURL(file);
+
+  link.href = fileUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(fileUrl);
 }
 
 function getRandomFlowerQuote(mood) {
@@ -283,4 +392,12 @@ function formatDate(date) {
     month: "long",
     day: "numeric"
   });
+}
+
+function formatDateForFileName(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }

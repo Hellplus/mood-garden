@@ -329,6 +329,33 @@ textarea:focus {
   gap: 12px;
 }
 
+.history-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.export-button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(71, 125, 84, 0.24);
+  border-radius: 999px;
+  color: #426d4b;
+  background: rgba(255, 255, 255, 0.58);
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(65, 78, 62, 0.06);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.export-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(71, 125, 84, 0.42);
+  background: rgba(244, 252, 240, 0.9);
+  box-shadow: 0 12px 24px rgba(65, 78, 62, 0.1);
+}
+
 .clear-button {
   min-height: 36px;
   padding: 0 14px;
@@ -478,6 +505,29 @@ textarea:focus {
   font-weight: 700;
 }
 
+.delete-flower-button {
+  position: relative;
+  z-index: 1;
+  min-height: 34px;
+  margin-top: 18px;
+  padding: 0 12px;
+  border: 1px solid rgba(123, 78, 78, 0.18);
+  border-radius: 999px;
+  color: #8d6b68;
+  background: rgba(255, 255, 255, 0.42);
+  cursor: pointer;
+  font-size: 0.88rem;
+  box-shadow: none;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.delete-flower-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(123, 78, 78, 0.42);
+  background: rgba(255, 246, 244, 0.9);
+  box-shadow: 0 10px 20px rgba(97, 75, 69, 0.1);
+}
+
 .empty {
   grid-column: 1 / -1;
   margin: 0;
@@ -546,6 +596,11 @@ textarea:focus {
     justify-content: space-between;
   }
 
+  .history-buttons {
+    justify-content: flex-end;
+  }
+
+  .export-button,
   .clear-button {
     min-height: 34px;
     padding: 0 12px;
@@ -572,5 +627,15 @@ textarea:focus {
     align-items: flex-start;
     flex-direction: column;
     gap: 8px;
+  }
+
+  .history-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .history-buttons {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
