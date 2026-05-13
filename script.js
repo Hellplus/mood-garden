@@ -86,6 +86,7 @@ const flowerCount = document.querySelector("#flowerCount");
 const totalCount = document.querySelector("#totalCount");
 const statsList = document.querySelector("#statsList");
 const gardenNote = document.querySelector("#gardenNote");
+const analysisPanel = document.querySelector(".analysis-panel");
 const analysisSummary = document.querySelector("#analysisSummary");
 const weekChart = document.querySelector("#weekChart");
 const moodDistribution = document.querySelector("#moodDistribution");
@@ -115,6 +116,7 @@ let editingFlowerId = "";
 let browseState = { ...defaultBrowseState };
 let toastTimer = 0;
 let listAnimationTimer = 0;
+let analysisAnimationTimer = 0;
 let newFlowerId = "";
 let updatedFlowerId = "";
 const addedMissingData = addMissingFlowerData();
@@ -165,7 +167,7 @@ plantButton.addEventListener("click", () => {
   const saved = saveFlowers();
   renderFlowers();
   renderStats();
-  renderAnalysis();
+  renderAnalysis({ animate: true });
 
   noteInput.value = "";
   showMessage(
@@ -252,7 +254,7 @@ clearButton.addEventListener("click", () => {
   const cleared = clearSavedFlowers();
   renderFlowers();
   renderStats();
-  renderAnalysis();
+  renderAnalysis({ animate: true });
   showMessage(
     cleared
       ? "花园已经清空。什么时候想重新开始，都可以再种下一朵花。"
@@ -639,7 +641,7 @@ function saveEditedFlower(flowerId) {
 
   renderFlowers();
   renderStats();
-  renderAnalysis();
+  renderAnalysis({ animate: true });
   showMessage(
     saved
       ? "这朵花的心情文字已经更新好了。"
@@ -682,7 +684,7 @@ function removeFlowerById(flowerId) {
 
   renderFlowers();
   renderStats();
-  renderAnalysis();
+  renderAnalysis({ animate: true });
   showMessage(
     saved
       ? "已经删除这一朵花，花园记录也同步更新了。"
@@ -719,7 +721,7 @@ function renderStats() {
   });
 }
 
-function renderAnalysis() {
+function renderAnalysis(options = {}) {
   const savedFlowers = loadFlowers();
   const recentDays = getRecentSevenDays();
   const weekCounts = getRecentSevenDayCounts(savedFlowers, recentDays);
@@ -737,6 +739,24 @@ function renderAnalysis() {
   renderMoodDistribution(moodCounts, savedFlowers.length);
   renderTopMood(topMoods, savedFlowers.length);
   renderStreak(streak, savedFlowers.length);
+  if (options.animate) {
+    animateAnalysisUpdate();
+  }
+}
+
+function animateAnalysisUpdate() {
+  if (!analysisPanel || shouldReduceMotion()) {
+    return;
+  }
+
+  analysisPanel.classList.remove("is-updating");
+  void analysisPanel.offsetWidth;
+  analysisPanel.classList.add("is-updating");
+
+  clearTimeout(analysisAnimationTimer);
+  analysisAnimationTimer = setTimeout(() => {
+    analysisPanel.classList.remove("is-updating");
+  }, 560);
 }
 
 function getRecentSevenDays() {
@@ -1294,7 +1314,7 @@ function importBackupRecords(importedFlowers, importMode) {
 
   renderFlowers();
   renderStats();
-  renderAnalysis();
+  renderAnalysis({ animate: true });
   showMessage(
     saved
       ? "备份导入成功，花园已经刷新好了。"
