@@ -2577,7 +2577,48 @@ body[data-theme="pink"] .mood-excited {
   }
 
   .hero-visual {
-    display: none;
+    display: grid;
+    min-height: auto;
+    margin-top: 2px;
+    place-items: stretch;
+  }
+
+  .journal-cover {
+    justify-items: start;
+    width: 100%;
+    min-height: 154px;
+    padding: 24px 22px 22px 120px;
+    text-align: left;
+    transform: rotate(0);
+  }
+
+  .journal-cover::before {
+    top: 14px;
+    width: 74px;
+    height: 16px;
+  }
+
+  .journal-label {
+    top: 22px;
+    left: 22px;
+  }
+
+  .journal-flower {
+    position: absolute;
+    top: 58px;
+    left: 28px;
+    margin-bottom: 0;
+    font-size: 3.35rem;
+  }
+
+  .journal-cover strong {
+    font-size: 1.08rem;
+  }
+
+  .journal-cover p {
+    margin-top: 8px;
+    font-size: 0.94rem;
+    line-height: 1.6;
   }
 
   .hero-tags {
