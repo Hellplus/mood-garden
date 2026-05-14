@@ -70,7 +70,7 @@
           <li>所有记录保存在当前浏览器的 localStorage 中，清空花园会删除当前浏览器里的记录。</li>
         </ul>
       </details>
-      <span class="version-badge" aria-label="当前项目版本">v2.2</span>
+      <span class="version-badge" aria-label="当前项目版本">v2.3</span>
     </section>
 
     <div class="entry-layout is-mobile-active" data-mobile-section="record">
@@ -201,6 +201,35 @@
         <button class="reset-filters-button" id="resetFiltersButton" type="button">重置筛选</button>
       </div>
 
+      <details class="advanced-filters" open>
+        <summary>标签与收藏筛选</summary>
+        <div class="advanced-filter-grid">
+          <button class="favorite-filter-button" id="favoriteFilterButton" type="button" aria-pressed="false">☆ 只看收藏</button>
+
+          <label class="browse-field intensity-filter-field" for="intensityFilter">
+            <span class="label">按强度</span>
+            <select id="intensityFilter">
+              <option value="all">全部强度</option>
+              <option value="1">强度 1</option>
+              <option value="2">强度 2</option>
+              <option value="3">强度 3</option>
+              <option value="4">强度 4</option>
+              <option value="5">强度 5</option>
+            </select>
+          </label>
+        </div>
+
+        <p class="filter-summary" id="activeFilterSummary" aria-live="polite">显示全部记录</p>
+
+        <section class="tag-cloud-panel" aria-labelledby="tagCloudTitle">
+          <div class="tag-cloud-heading">
+            <span class="label" id="tagCloudTitle">标签云</span>
+            <span>点击标签即可筛选，再点一次取消。</span>
+          </div>
+          <div class="tag-cloud" id="tagCloud" aria-live="polite"></div>
+        </section>
+      </details>
+
       <div class="view-switcher" role="tablist" aria-label="花园视图切换">
         <button class="view-switch-button active" type="button" data-garden-view="list" aria-selected="true" aria-controls="flowerList">列表视图</button>
         <button class="view-switch-button" type="button" data-garden-view="calendar" aria-selected="false" aria-controls="calendarPanel">日历视图</button>
@@ -310,13 +339,13 @@
         </article>
         <article class="app-info-card">
           <span class="app-info-label">关于项目</span>
-          <p>Mood Garden v2.2 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
+          <p>Mood Garden v2.3 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
         </article>
       </div>
     </section>
 
     <footer class="site-footer" data-mobile-section="data" aria-label="项目信息">
-      <strong>Mood Garden 情绪花园 v2.2</strong>
+      <strong>Mood Garden 情绪花园 v2.3</strong>
       <span>数据保存在你的浏览器 localStorage 中。</span>
       <span>仅用于个人记录，不提供心理诊断或医疗建议。</span>
     </footer>

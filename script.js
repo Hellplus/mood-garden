@@ -204,7 +204,7 @@ const flowerQuoteMap = {
 const storageKey = "moodGardenFlowers";
 const themeStorageKey = "moodGardenTheme";
 const guideStorageKey = "moodGardenGuideSeen";
-const appVersion = "2.2.0";
+const appVersion = "2.3.0";
 const maxMoodIconLength = 4;
 const defaultIntensity = 3;
 const minIntensity = 1;
@@ -246,6 +246,10 @@ const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
 const resetFiltersButton = document.querySelector("#resetFiltersButton");
 const filterCount = document.querySelector("#filterCount");
+const favoriteFilterButton = document.querySelector("#favoriteFilterButton");
+const intensityFilter = document.querySelector("#intensityFilter");
+const activeFilterSummary = document.querySelector("#activeFilterSummary");
+const tagCloud = document.querySelector("#tagCloud");
 const viewSwitchButtons = document.querySelectorAll("[data-garden-view]");
 const calendarPanel = document.querySelector("#calendarPanel");
 const calendarTitle = document.querySelector("#calendarTitle");
@@ -287,7 +291,10 @@ const detailFavoriteInput = document.querySelector("#detailFavoriteInput");
 const defaultBrowseState = {
   mood: "all",
   keyword: "",
-  sort: "newest"
+  sort: "newest",
+  tag: "",
+  favorite: false,
+  intensity: "all"
 };
 
 const mobileTabs = ["record", "garden", "analysis", "data"];
@@ -399,6 +406,37 @@ sortSelect.addEventListener("change", () => {
   editingFlowerId = "";
   renderFlowers({ animateList: true });
 });
+
+if (favoriteFilterButton) {
+  favoriteFilterButton.addEventListener("click", () => {
+    browseState.favorite = !browseState.favorite;
+    editingFlowerId = "";
+    renderFlowers({ animateList: true });
+  });
+}
+
+if (intensityFilter) {
+  intensityFilter.addEventListener("change", () => {
+    browseState.intensity = intensityFilter.value;
+    editingFlowerId = "";
+    renderFlowers({ animateList: true });
+  });
+}
+
+if (tagCloud) {
+  tagCloud.addEventListener("click", (event) => {
+    const tagButton = event.target.closest(".tag-button");
+
+    if (!tagButton) {
+      return;
+    }
+
+    const nextTag = tagButton.dataset.tag || "";
+    browseState.tag = browseState.tag === nextTag ? "" : nextTag;
+    editingFlowerId = "";
+    renderFlowers({ animateList: true });
+  });
+}
 
 resetFiltersButton.addEventListener("click", () => {
   resetBrowseState();
@@ -886,6 +924,15 @@ function getFlowerIntensity(flower) {
   return getSafeIntensity(flower ? flower.intensity : defaultIntensity);
 }
 
+function hasFlowerIntensity(flower) {
+  const intensity = Number(flower ? flower.intensity : NaN);
+  return Number.isInteger(intensity) && intensity >= minIntensity && intensity <= maxIntensity;
+}
+
+function getFlowerIntensityText(flower) {
+  return hasFlowerIntensity(flower) ? `${getFlowerIntensity(flower)} / 5` : "未设置";
+}
+
 function getSafeIntensity(value) {
   const intensity = Number(value);
 
@@ -952,13 +999,31 @@ function getDetailNoteText(text) {
 
 // Browse, search, and sort helpers.
 function getVisibleFlowers() {
+  syncActiveTagFilter();
+
   let visibleFlowers = [...flowers];
 
   visibleFlowers = visibleFlowers.filter((flower) => {
-    return matchesMood(flower) && matchesKeyword(flower);
+    return matchesMood(flower)
+      && matchesKeyword(flower)
+      && matchesTag(flower)
+      && matchesFavorite(flower)
+      && matchesIntensity(flower);
   });
 
   return sortVisibleFlowers(visibleFlowers);
+}
+
+function syncActiveTagFilter() {
+  if (!browseState.tag) {
+    return;
+  }
+
+  const tagExists = flowers.some((flower) => getFlowerTags(flower).includes(browseState.tag));
+
+  if (!tagExists) {
+    browseState.tag = "";
+  }
 }
 
 function sortVisibleFlowers(visibleFlowers) {
@@ -1002,8 +1067,126 @@ function matchesKeyword(flower) {
   return note.includes(browseState.keyword);
 }
 
+function matchesTag(flower) {
+  if (!browseState.tag) {
+    return true;
+  }
+
+  return getFlowerTags(flower).includes(browseState.tag);
+}
+
+function matchesFavorite(flower) {
+  return !browseState.favorite || isFlowerFavorite(flower);
+}
+
+function matchesIntensity(flower) {
+  if (browseState.intensity === "all") {
+    return true;
+  }
+
+  return hasFlowerIntensity(flower) && String(getFlowerIntensity(flower)) === browseState.intensity;
+}
+
 function renderFilterCount(visibleCount) {
   filterCount.textContent = `当前显示 ${visibleCount} / ${flowers.length} 条记录`;
+}
+
+function renderFavoriteFilterButton() {
+  if (!favoriteFilterButton) {
+    return;
+  }
+
+  favoriteFilterButton.classList.toggle("active", browseState.favorite);
+  favoriteFilterButton.setAttribute("aria-pressed", String(browseState.favorite));
+  favoriteFilterButton.textContent = browseState.favorite ? "★ 正在看收藏" : "☆ 只看收藏";
+}
+
+function renderActiveFilters() {
+  if (!activeFilterSummary) {
+    return;
+  }
+
+  const activeFilters = [];
+
+  if (browseState.mood !== "all" && moodMap[browseState.mood]) {
+    activeFilters.push(`情绪：${moodMap[browseState.mood].name}`);
+  }
+
+  if (browseState.keyword) {
+    activeFilters.push(`关键词：${browseState.keyword}`);
+  }
+
+  if (browseState.favorite) {
+    activeFilters.push("收藏");
+  }
+
+  if (browseState.tag) {
+    activeFilters.push(`标签：${browseState.tag}`);
+  }
+
+  if (browseState.intensity !== "all") {
+    activeFilters.push(`强度：${browseState.intensity}`);
+  }
+
+  if (browseState.sort === "oldest") {
+    activeFilters.push("排序：最早优先");
+  }
+
+  activeFilterSummary.classList.toggle("is-empty", activeFilters.length === 0);
+  activeFilterSummary.textContent = activeFilters.length > 0
+    ? `当前：${activeFilters.join(" · ")}`
+    : "显示全部记录";
+}
+
+function getTagCounts(records) {
+  const tagCounts = {};
+
+  records.forEach((flower) => {
+    getFlowerTags(flower).forEach((tag) => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
+  });
+
+  return Object.entries(tagCounts)
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => {
+      if (b.count === a.count) {
+        return a.tag.localeCompare(b.tag, "zh-CN");
+      }
+
+      return b.count - a.count;
+    });
+}
+
+function renderTagCloud() {
+  if (!tagCloud) {
+    return;
+  }
+
+  const tagCounts = getTagCounts(flowers);
+
+  tagCloud.innerHTML = "";
+
+  if (tagCounts.length === 0) {
+    const empty = document.createElement("p");
+
+    empty.className = "tag-empty";
+    empty.textContent = "还没有标签。种花或在详情里加一点关键词，花园会慢慢长出标签。";
+    tagCloud.appendChild(empty);
+    return;
+  }
+
+  tagCounts.forEach(({ tag, count }) => {
+    const button = document.createElement("button");
+    const isActive = browseState.tag === tag;
+
+    button.className = `tag-button${isActive ? " active" : ""}`;
+    button.type = "button";
+    button.dataset.tag = tag;
+    button.setAttribute("aria-pressed", String(isActive));
+    button.textContent = `#${tag} ${count}`;
+    tagCloud.appendChild(button);
+  });
 }
 
 function resetBrowseState() {
@@ -1011,6 +1194,11 @@ function resetBrowseState() {
   moodFilter.value = defaultBrowseState.mood;
   searchInput.value = defaultBrowseState.keyword;
   sortSelect.value = defaultBrowseState.sort;
+
+  if (intensityFilter) {
+    intensityFilter.value = defaultBrowseState.intensity;
+  }
+
   editingFlowerId = "";
   renderFlowers({ animateList: true });
   showMessage("已经恢复显示全部花朵。", "success");
@@ -1302,6 +1490,9 @@ function renderFlowers(options = {}) {
   }
 
   renderFilterCount(visibleFlowers.length);
+  renderFavoriteFilterButton();
+  renderActiveFilters();
+  renderTagCloud();
 
   if (flowers.length === 0) {
     flowerList.appendChild(createEmptyState(
@@ -1435,7 +1626,7 @@ function renderFlowerMeta(container, flower) {
   const tags = getFlowerTags(flower);
   const hasDetailNote = Boolean(getFlowerDetailNote(flower));
   const metaItems = [
-    `强度 ${intensity}/5`
+    hasFlowerIntensity(flower) ? `强度 ${intensity}/5` : "强度未设置"
   ];
 
   container.innerHTML = "";
@@ -2106,7 +2297,7 @@ function createDiaryText(savedFlowers) {
       `${index + 1}. 创建日期：${flower.date || "未知日期"}`,
       `情绪：${moodIcon} ${mood.name}`,
       `心情：${flower.note || "没有留下文字"}`,
-      `心情强度：${getFlowerIntensity(flower)} / 5`,
+      `心情强度：${getFlowerIntensityText(flower)}`,
       `标签：${tags.length > 0 ? tags.join("、") : "无"}`,
       `收藏状态：${isFlowerFavorite(flower) ? "已收藏" : "未收藏"}`,
       `补充日记：${detailNote || "无"}`,
