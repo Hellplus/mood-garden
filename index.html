@@ -70,13 +70,25 @@
           <li>所有记录保存在当前浏览器的 localStorage 中，清空花园会删除当前浏览器里的记录。</li>
         </ul>
       </details>
-      <span class="version-badge" aria-label="当前项目版本">v2.5</span>
+      <span class="version-badge" aria-label="当前项目版本">v2.6</span>
     </section>
 
     <div class="entry-layout is-mobile-active" data-mobile-section="record">
       <section class="panel glass-card entry-panel" aria-labelledby="form-title">
         <p class="section-kicker">Today note</p>
         <h2 id="form-title">今天的花</h2>
+
+        <section class="today-status-card" id="todayStatusCard" aria-live="polite">
+          <div>
+            <span class="today-status-label">今日状态</span>
+            <strong id="todayStatusTitle">今天的花园还在等你。</strong>
+            <p id="todayStatusText">写下一句话，给今天留一朵小花。</p>
+          </div>
+          <div class="today-status-side">
+            <span id="todayStatusMeta">0 朵</span>
+            <button class="soft-action-button" id="focusNoteButton" type="button">开始记录</button>
+          </div>
+        </section>
 
         <div class="field">
           <span class="label">选择情绪</span>
@@ -87,6 +99,11 @@
             <button class="mood-button" type="button" data-mood="tired" aria-pressed="false">疲惫</button>
             <button class="mood-button" type="button" data-mood="excited" aria-pressed="false">兴奋</button>
           </div>
+        </div>
+
+        <div class="prompt-card" aria-live="polite">
+          <span id="promptQuestion">今天最想记住的一个瞬间是什么？</span>
+          <button class="prompt-refresh-button" id="changePromptButton" type="button" aria-label="换一个记录引导问题">换一个</button>
         </div>
 
         <label class="field note-field" for="noteInput">
@@ -115,6 +132,28 @@
 
         <button class="plant-button" id="plantButton" type="button">种下一朵花</button>
         <p class="hint" id="message" aria-live="polite"></p>
+
+        <section class="next-step-panel" id="nextStepPanel" aria-live="polite" hidden>
+          <div>
+            <strong>今天的花已经保存。</strong>
+            <p>可以去花园看看它，也可以继续留下一句心情。</p>
+          </div>
+          <div class="next-step-actions">
+            <button class="soft-action-button" id="goGardenButton" type="button">去花园看看</button>
+            <button class="soft-action-button muted" id="continueRecordButton" type="button">继续记录</button>
+          </div>
+        </section>
+
+        <section class="recent-records-panel" aria-labelledby="recent-records-title">
+          <div class="recent-records-heading">
+            <div>
+              <span class="today-status-label">最近回看</span>
+              <h3 id="recent-records-title">刚刚种下的花</h3>
+            </div>
+            <button class="soft-action-button muted" id="viewAllGardenButton" type="button">查看全部</button>
+          </div>
+          <div class="recent-records-list" id="recentRecordsList"></div>
+        </section>
       </section>
 
       <section class="stats glass-card overview-panel" aria-labelledby="stats-title">
@@ -412,13 +451,13 @@
         </article>
         <article class="app-info-card">
           <span class="app-info-label">关于项目</span>
-          <p>Mood Garden v2.5 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
+          <p>Mood Garden v2.6 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
         </article>
       </div>
     </section>
 
     <footer class="site-footer" data-mobile-section="data" aria-label="项目信息">
-      <strong>Mood Garden 情绪花园 v2.5</strong>
+      <strong>Mood Garden 情绪花园 v2.6</strong>
       <span>数据保存在你的浏览器 localStorage 中。</span>
       <span>仅用于个人记录，不提供心理诊断或医疗建议。</span>
     </footer>

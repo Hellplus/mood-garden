@@ -200,11 +200,22 @@ const flowerQuoteMap = {
   ]
 };
 
+const promptQuestions = [
+  "今天最想记住的一个瞬间是什么？",
+  "此刻的身体感觉怎么样？",
+  "今天有没有一件小事让你停下来？",
+  "如果用一句话保存今天，会是什么？",
+  "今天有什么让你觉得需要被轻轻放下？",
+  "现在最靠近你的情绪是什么？",
+  "今天有没有一个小小的变化值得记住？",
+  "此刻你想对今天说点什么？"
+];
+
 // Local storage keys and small safety limits. Keep these keys stable so old gardens still open.
 const storageKey = "moodGardenFlowers";
 const themeStorageKey = "moodGardenTheme";
 const guideStorageKey = "moodGardenGuideSeen";
-const appVersion = "2.5.0";
+const appVersion = "2.6.0";
 const maxMoodIconLength = 4;
 const defaultIntensity = 3;
 const minIntensity = 1;
@@ -253,6 +264,18 @@ const moodIntensityAnalysis = document.querySelector("#moodIntensityAnalysis");
 const monthlyReview = document.querySelector("#monthlyReview");
 const weeklyReview = document.querySelector("#weeklyReview");
 const message = document.querySelector("#message");
+const todayStatusCard = document.querySelector("#todayStatusCard");
+const todayStatusTitle = document.querySelector("#todayStatusTitle");
+const todayStatusText = document.querySelector("#todayStatusText");
+const todayStatusMeta = document.querySelector("#todayStatusMeta");
+const focusNoteButton = document.querySelector("#focusNoteButton");
+const promptQuestion = document.querySelector("#promptQuestion");
+const changePromptButton = document.querySelector("#changePromptButton");
+const nextStepPanel = document.querySelector("#nextStepPanel");
+const goGardenButton = document.querySelector("#goGardenButton");
+const continueRecordButton = document.querySelector("#continueRecordButton");
+const viewAllGardenButton = document.querySelector("#viewAllGardenButton");
+const recentRecordsList = document.querySelector("#recentRecordsList");
 const moodFilter = document.querySelector("#moodFilter");
 const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
@@ -330,6 +353,7 @@ let analysisAnimationTimer = 0;
 let newFlowerId = "";
 let updatedFlowerId = "";
 let detailFlowerId = "";
+let currentPromptQuestion = "";
 const addedMissingData = addMissingFlowerData();
 
 if (addedMissingData) {
@@ -342,6 +366,7 @@ setActiveMoodButton(selectedMood);
 initMobileTabs();
 initGardenViewSwitcher();
 initInsightSwitcher();
+renderPromptQuestion();
 updateAllViews();
 initOnboardingGuide();
 registerServiceWorker();
@@ -402,7 +427,51 @@ plantButton.addEventListener("click", () => {
       : "这朵花已经显示出来了，但浏览器暂时没能保存它。",
     saved ? "success" : "error"
   );
+
+  showNextStepAfterPlanting(saved);
 });
+
+if (focusNoteButton) {
+  focusNoteButton.addEventListener("click", () => {
+    focusTodayNote();
+  });
+}
+
+if (changePromptButton) {
+  changePromptButton.addEventListener("click", () => {
+    renderPromptQuestion();
+    focusTodayNote({ scroll: false });
+  });
+}
+
+if (continueRecordButton) {
+  continueRecordButton.addEventListener("click", () => {
+    hideNextStepPanel();
+    focusTodayNote();
+  });
+}
+
+if (goGardenButton) {
+  goGardenButton.addEventListener("click", () => {
+    goToGardenAfterPlanting();
+  });
+}
+
+if (viewAllGardenButton) {
+  viewAllGardenButton.addEventListener("click", () => {
+    goToGardenAfterPlanting();
+  });
+}
+
+if (recentRecordsList) {
+  recentRecordsList.addEventListener("click", (event) => {
+    const recentButton = event.target.closest(".recent-record-item");
+
+    if (recentButton) {
+      openFlowerDetail(recentButton.dataset.id);
+    }
+  });
+}
 
 moodFilter.addEventListener("change", () => {
   browseState.mood = moodFilter.value;
@@ -624,6 +693,7 @@ clearButton.addEventListener("click", () => {
   closeFlowerDetail({ silent: true });
   const cleared = clearSavedFlowers();
   updateAllViews({ animateAnalysis: true });
+  hideNextStepPanel();
   showMessage(
     cleared
       ? "花园已经清空。什么时候想重新开始，都可以再种下一朵花。"
@@ -885,11 +955,171 @@ function updateAllViews(options = {}) {
   renderAnalysis({
     animate: Boolean(options.animateAnalysis)
   });
+  renderDailyExperience();
   try {
     renderCalendar();
   } catch (error) {
     console.warn("日历视图刷新失败：", error);
   }
+}
+
+// V2.6 daily experience helpers. These read saved records and do not change record data.
+function renderDailyExperience() {
+  const savedFlowers = loadFlowers();
+
+  renderTodayStatus(savedFlowers);
+  renderRecentRecords(savedFlowers);
+
+  if (savedFlowers.length === 0) {
+    hideNextStepPanel();
+  }
+}
+
+function renderTodayStatus(savedFlowers) {
+  if (!todayStatusCard || !todayStatusTitle || !todayStatusText || !todayStatusMeta) {
+    return;
+  }
+
+  const todayRecords = sortFlowersByCreatedAt(getTodayRecords(savedFlowers));
+  const latestTodayRecord = todayRecords[0];
+
+  todayStatusCard.classList.toggle("has-records", todayRecords.length > 0);
+
+  if (!latestTodayRecord) {
+    todayStatusTitle.textContent = "今天的花园还在等你。";
+    todayStatusText.textContent = "写下一句话，给今天留一朵小花。";
+    todayStatusMeta.textContent = "0 朵";
+    return;
+  }
+
+  const moodKey = moodMap[latestTodayRecord.mood] ? latestTodayRecord.mood : "happy";
+  const mood = moodMap[moodKey];
+
+  todayStatusTitle.textContent = `今天已经种下 ${todayRecords.length} 朵花。`;
+  todayStatusText.textContent = `最近一次是${mood.name}，它已经被好好保存。`;
+  todayStatusMeta.textContent = `最近：${mood.name}`;
+}
+
+function getRandomPromptQuestion() {
+  if (promptQuestions.length === 0) {
+    return "今天有什么想轻轻记下？";
+  }
+
+  if (promptQuestions.length === 1) {
+    return promptQuestions[0];
+  }
+
+  let nextQuestion = currentPromptQuestion;
+
+  while (nextQuestion === currentPromptQuestion) {
+    nextQuestion = promptQuestions[Math.floor(Math.random() * promptQuestions.length)];
+  }
+
+  currentPromptQuestion = nextQuestion;
+  return nextQuestion;
+}
+
+function renderPromptQuestion() {
+  if (!promptQuestion) {
+    return;
+  }
+
+  promptQuestion.textContent = getRandomPromptQuestion();
+}
+
+function focusTodayNote(options = {}) {
+  if (!noteInput) {
+    return;
+  }
+
+  if (options.scroll !== false) {
+    noteInput.scrollIntoView({
+      behavior: shouldReduceMotion() ? "auto" : "smooth",
+      block: "center"
+    });
+  }
+
+  noteInput.focus();
+}
+
+function showNextStepAfterPlanting(saved) {
+  if (!nextStepPanel || !saved) {
+    return;
+  }
+
+  nextStepPanel.hidden = false;
+}
+
+function hideNextStepPanel() {
+  if (nextStepPanel) {
+    nextStepPanel.hidden = true;
+  }
+}
+
+function goToGardenAfterPlanting() {
+  hideNextStepPanel();
+
+  if (isMobileLayout()) {
+    switchMobileTab("garden");
+    return;
+  }
+
+  const gardenSection = document.querySelector(".history");
+
+  if (gardenSection) {
+    gardenSection.scrollIntoView({
+      behavior: shouldReduceMotion() ? "auto" : "smooth",
+      block: "start"
+    });
+  }
+}
+
+function renderRecentRecords(savedFlowers) {
+  if (!recentRecordsList) {
+    return;
+  }
+
+  const recentFlowers = sortFlowersByCreatedAt(savedFlowers).slice(0, 3);
+
+  recentRecordsList.innerHTML = "";
+
+  if (recentFlowers.length === 0) {
+    const empty = document.createElement("p");
+
+    empty.className = "recent-record-empty";
+    empty.textContent = "还没有可以回看的花。写下一句今天的心情，第一条记录会出现在这里。";
+    recentRecordsList.appendChild(empty);
+    return;
+  }
+
+  recentFlowers.forEach((flower) => {
+    const moodKey = moodMap[flower.mood] ? flower.mood : "happy";
+    const mood = moodMap[moodKey];
+    const moodIcon = getFlowerMoodIcon(flower, mood);
+    const item = document.createElement("button");
+    const icon = document.createElement("span");
+    const main = document.createElement("span");
+    const title = document.createElement("strong");
+    const note = document.createElement("span");
+
+    item.className = "recent-record-item";
+    item.type = "button";
+    item.dataset.id = flower.id;
+    item.setAttribute("aria-label", `查看最近记录：${mood.name}`);
+
+    icon.className = `recent-record-icon mood-icon mood-icon-${moodKey} ${getIconAnimationClass(moodIcon, moodKey)} icon-animate-light`;
+    icon.textContent = moodIcon;
+
+    main.className = "recent-record-main";
+    title.textContent = `${mood.name} · ${flower.date || "未知日期"}`;
+    note.textContent = getShortText(flower.note || "没有留下文字", 36);
+
+    main.appendChild(title);
+    main.appendChild(note);
+    item.appendChild(icon);
+    item.appendChild(main);
+    recentRecordsList.appendChild(item);
+  });
 }
 
 // UI state helpers.
