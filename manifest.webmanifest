@@ -1,0 +1,20 @@
+{
+  "name": "Mood Garden 情绪花园",
+  "short_name": "Mood Garden",
+  "description": "一个轻量的情绪记录小花园。",
+  "id": "/mood-garden/",
+  "lang": "zh-CN",
+  "start_url": "/mood-garden/",
+  "scope": "/mood-garden/",
+  "display": "standalone",
+  "background_color": "#fff7ec",
+  "theme_color": "#fff7ec",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

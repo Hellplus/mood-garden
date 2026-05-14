@@ -203,6 +203,8 @@ const flowerQuoteMap = {
 // Local storage keys and small safety limits. Keep these keys stable so old gardens still open.
 const storageKey = "moodGardenFlowers";
 const themeStorageKey = "moodGardenTheme";
+const guideStorageKey = "moodGardenGuideSeen";
+const appVersion = "2.0.0";
 const maxMoodIconLength = 4;
 const validThemes = ["light", "dark", "pink"];
 const themeNames = {
@@ -249,6 +251,8 @@ const mobileExportBackupButton = document.querySelector("#mobileExportBackupButt
 const mobileImportBackupButton = document.querySelector("#mobileImportBackupButton");
 const mobileImportModeSelect = document.querySelector("#mobileImportModeSelect");
 const mobileClearButton = document.querySelector("#mobileClearButton");
+const onboardingGuide = document.querySelector("#onboardingGuide");
+const guideCloseButton = document.querySelector("#guideCloseButton");
 
 // App state.
 const defaultBrowseState = {
@@ -260,7 +264,7 @@ const defaultBrowseState = {
 const mobileTabs = ["record", "garden", "analysis", "data"];
 
 const backupAppName = "Mood Garden";
-const backupVersion = "1.2";
+const backupVersion = appVersion;
 
 let selectedMood = "happy";
 let flowers = loadFlowers();
@@ -282,6 +286,8 @@ initHeroMoodIcon();
 setActiveMoodButton(selectedMood);
 updateAllViews();
 initMobileTabs();
+initOnboardingGuide();
+registerServiceWorker();
 
 moodOptions.addEventListener("click", (event) => {
   const button = event.target.closest(".mood-button");
@@ -422,6 +428,12 @@ if (mobileClearButton) {
   });
 }
 
+if (guideCloseButton) {
+  guideCloseButton.addEventListener("click", () => {
+    closeOnboardingGuide();
+  });
+}
+
 clearButton.addEventListener("click", () => {
   if (flowers.length === 0) {
     showMessage("花园现在是空的，先种下一朵花吧。", "info");
@@ -523,6 +535,73 @@ function showToast(text, type = "info") {
   toastTimer = setTimeout(() => {
     toast.classList.remove("show");
   }, 2600);
+}
+
+// First-use guide uses its own localStorage key and never touches flower data.
+function initOnboardingGuide() {
+  if (!onboardingGuide || hasSeenOnboardingGuide()) {
+    return;
+  }
+
+  onboardingGuide.hidden = false;
+
+  if (guideCloseButton) {
+    guideCloseButton.focus({ preventScroll: true });
+  }
+}
+
+function hasSeenOnboardingGuide() {
+  try {
+    return localStorage.getItem(guideStorageKey) === "true";
+  } catch (error) {
+    console.warn("读取首次使用引导状态失败：", error);
+    return false;
+  }
+}
+
+function closeOnboardingGuide() {
+  if (!onboardingGuide) {
+    return;
+  }
+
+  onboardingGuide.hidden = true;
+
+  try {
+    localStorage.setItem(guideStorageKey, "true");
+  } catch (error) {
+    console.warn("保存首次使用引导状态失败：", error);
+  }
+
+  noteInput.focus();
+}
+
+// PWA helper. It is skipped when the project is opened directly with file://.
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator) || window.location.protocol === "file:") {
+    return;
+  }
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then((registration) => {
+        registration.addEventListener("updatefound", () => {
+          const newWorker = registration.installing;
+
+          if (!newWorker) {
+            return;
+          }
+
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              showMessage(`Mood Garden v${appVersion} 已经准备好，刷新页面后就能使用新版本。`, "info");
+            }
+          });
+        });
+      })
+      .catch((error) => {
+        console.warn("Service worker 注册失败：", error);
+      });
+  });
 }
 
 // Mobile tab helpers only change what is visible on small screens.
