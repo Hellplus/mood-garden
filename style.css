@@ -4377,7 +4377,8 @@ body[data-theme="pink"] .mood-excited {
   }
 
   .toast {
-    bottom: 16px;
+    bottom: calc(96px + env(safe-area-inset-bottom));
+    z-index: 45;
     border-radius: 16px;
   }
 
@@ -4387,7 +4388,7 @@ body[data-theme="pink"] .mood-excited {
 
   .detail-overlay {
     align-items: end;
-    z-index: 24;
+    z-index: 60;
     padding: 16px 12px calc(92px + env(safe-area-inset-bottom));
   }
 
@@ -4402,6 +4403,12 @@ body[data-theme="pink"] .mood-excited {
     align-items: flex-start;
     flex-direction: column;
     padding-right: 42px;
+  }
+
+  body.has-detail-open .mobile-tabbar {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(12px);
   }
 
   .guide-card {

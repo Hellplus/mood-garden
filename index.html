@@ -9,6 +9,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://hellplus.github.io/mood-garden/">
   <meta name="theme-color" content="#fff7ec">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Mood Garden">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -70,7 +71,7 @@
           <li>所有记录保存在当前浏览器的 localStorage 中，清空花园会删除当前浏览器里的记录。</li>
         </ul>
       </details>
-      <span class="version-badge" aria-label="当前项目版本">v2.6</span>
+      <span class="version-badge" aria-label="当前项目版本">v2.7</span>
     </section>
 
     <div class="entry-layout is-mobile-active" data-mobile-section="record">
@@ -451,23 +452,23 @@
         </article>
         <article class="app-info-card">
           <span class="app-info-label">关于项目</span>
-          <p>Mood Garden v2.6 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
+          <p>Mood Garden v2.7 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
         </article>
       </div>
     </section>
 
     <footer class="site-footer" data-mobile-section="data" aria-label="项目信息">
-      <strong>Mood Garden 情绪花园 v2.6</strong>
+      <strong>Mood Garden 情绪花园 v2.7</strong>
       <span>数据保存在你的浏览器 localStorage 中。</span>
       <span>仅用于个人记录，不提供心理诊断或医疗建议。</span>
     </footer>
   </main>
 
-  <nav class="mobile-tabbar" aria-label="移动端页面导航">
-    <button class="mobile-tab-button active" type="button" data-mobile-tab="record" aria-controls="mobile-record" aria-selected="true">记录</button>
-    <button class="mobile-tab-button" type="button" data-mobile-tab="garden" aria-controls="mobile-garden" aria-selected="false">花园</button>
-    <button class="mobile-tab-button" type="button" data-mobile-tab="analysis" aria-controls="mobile-analysis" aria-selected="false">分析</button>
-    <button class="mobile-tab-button" type="button" data-mobile-tab="data" aria-controls="mobile-data" aria-selected="false">数据</button>
+  <nav class="mobile-tabbar" aria-label="移动端页面导航" role="tablist">
+    <button class="mobile-tab-button active" type="button" role="tab" data-mobile-tab="record" aria-controls="mobile-record" aria-selected="true">记录</button>
+    <button class="mobile-tab-button" type="button" role="tab" data-mobile-tab="garden" aria-controls="mobile-garden" aria-selected="false">花园</button>
+    <button class="mobile-tab-button" type="button" role="tab" data-mobile-tab="analysis" aria-controls="mobile-analysis" aria-selected="false">分析</button>
+    <button class="mobile-tab-button" type="button" role="tab" data-mobile-tab="data" aria-controls="mobile-data" aria-selected="false">数据</button>
   </nav>
 
   <section class="detail-overlay" id="flowerDetailOverlay" aria-labelledby="detailTitle" aria-modal="true" role="dialog" hidden>
@@ -525,11 +526,11 @@
     </div>
   </section>
 
-  <section class="guide-overlay" id="onboardingGuide" aria-labelledby="guideTitle" aria-modal="true" role="dialog" hidden>
+  <section class="guide-overlay" id="onboardingGuide" aria-labelledby="guideTitle" aria-describedby="guideDescription" aria-modal="true" role="dialog" hidden>
     <div class="guide-card glass-card">
       <p class="section-kicker">Welcome</p>
       <h2 id="guideTitle">欢迎来到 Mood Garden</h2>
-      <p>这里是一页轻量情绪记录小花园。你可以从今天开始，慢慢种下自己的心情。</p>
+      <p id="guideDescription">这里是一页轻量情绪记录小花园。你可以从今天开始，慢慢种下自己的心情。</p>
       <ol class="guide-steps">
         <li>选择今天的情绪。</li>
         <li>写下一句心情。</li>

@@ -215,7 +215,11 @@ const promptQuestions = [
 const storageKey = "moodGardenFlowers";
 const themeStorageKey = "moodGardenTheme";
 const guideStorageKey = "moodGardenGuideSeen";
-const appVersion = "2.6.0";
+const appVersion = "2.7.0";
+const defaultMood = "happy";
+const emptyNoteText = "这朵花没有留下文字";
+const unknownDateText = "日期未知";
+const searchDebounceDelay = 160;
 const maxMoodIconLength = 4;
 const defaultIntensity = 3;
 const minIntensity = 1;
@@ -340,7 +344,8 @@ const backupAppName = "Mood Garden";
 const backupVersion = appVersion;
 
 let selectedMood = "happy";
-let flowers = loadFlowers();
+let loadedFlowersNeedSave = false;
+let flowers = loadFlowers({ trackChanges: true });
 let editingFlowerId = "";
 let browseState = { ...defaultBrowseState };
 let gardenView = "list";
@@ -350,13 +355,14 @@ let selectedCalendarDateKey = getDateKey(new Date());
 let toastTimer = 0;
 let listAnimationTimer = 0;
 let analysisAnimationTimer = 0;
+let searchDebounceTimer = 0;
 let newFlowerId = "";
 let updatedFlowerId = "";
 let detailFlowerId = "";
 let currentPromptQuestion = "";
 const addedMissingData = addMissingFlowerData();
 
-if (addedMissingData) {
+if (loadedFlowersNeedSave || addedMissingData) {
   saveFlowers();
 }
 
@@ -480,9 +486,12 @@ moodFilter.addEventListener("change", () => {
 });
 
 searchInput.addEventListener("input", () => {
-  browseState.keyword = searchInput.value.trim().toLowerCase();
-  editingFlowerId = "";
-  renderFlowers();
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    browseState.keyword = searchInput.value.trim().toLowerCase();
+    editingFlowerId = "";
+    renderFlowers();
+  }, searchDebounceDelay);
 });
 
 sortSelect.addEventListener("change", () => {
@@ -670,8 +679,17 @@ if (flowerDetailOverlay) {
 }
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && flowerDetailOverlay && !flowerDetailOverlay.hidden) {
+  if (event.key !== "Escape") {
+    return;
+  }
+
+  if (flowerDetailOverlay && !flowerDetailOverlay.hidden) {
     closeFlowerDetail();
+    return;
+  }
+
+  if (onboardingGuide && !onboardingGuide.hidden) {
+    closeOnboardingGuide();
   }
 });
 
@@ -948,14 +966,17 @@ function syncDesktopImportMode() {
 
 // Rendering entry point: use this after data changes so all views stay in sync.
 function updateAllViews(options = {}) {
+  const currentFlowers = flowers;
+
   renderFlowers({
     animateList: Boolean(options.animateList)
   });
-  renderStats();
+  renderStats(currentFlowers);
   renderAnalysis({
-    animate: Boolean(options.animateAnalysis)
+    animate: Boolean(options.animateAnalysis),
+    records: currentFlowers
   });
-  renderDailyExperience();
+  renderDailyExperience(currentFlowers);
   try {
     renderCalendar();
   } catch (error) {
@@ -964,9 +985,7 @@ function updateAllViews(options = {}) {
 }
 
 // V2.6 daily experience helpers. These read saved records and do not change record data.
-function renderDailyExperience() {
-  const savedFlowers = loadFlowers();
-
+function renderDailyExperience(savedFlowers = loadFlowers()) {
   renderTodayStatus(savedFlowers);
   renderRecentRecords(savedFlowers);
 
@@ -992,7 +1011,7 @@ function renderTodayStatus(savedFlowers) {
     return;
   }
 
-  const moodKey = moodMap[latestTodayRecord.mood] ? latestTodayRecord.mood : "happy";
+  const moodKey = getSafeMoodKey(latestTodayRecord);
   const mood = moodMap[moodKey];
 
   todayStatusTitle.textContent = `今天已经种下 ${todayRecords.length} 朵花。`;
@@ -1093,7 +1112,7 @@ function renderRecentRecords(savedFlowers) {
   }
 
   recentFlowers.forEach((flower) => {
-    const moodKey = moodMap[flower.mood] ? flower.mood : "happy";
+    const moodKey = getSafeMoodKey(flower);
     const mood = moodMap[moodKey];
     const moodIcon = getFlowerMoodIcon(flower, mood);
     const item = document.createElement("button");
@@ -1111,8 +1130,8 @@ function renderRecentRecords(savedFlowers) {
     icon.textContent = moodIcon;
 
     main.className = "recent-record-main";
-    title.textContent = `${mood.name} · ${flower.date || "未知日期"}`;
-    note.textContent = getShortText(flower.note || "没有留下文字", 36);
+    title.textContent = `${mood.name} · ${getSafeFlowerDateText(flower)}`;
+    note.textContent = getShortText(getSafeNoteText(flower.note), 36);
 
     main.appendChild(title);
     main.appendChild(note);
@@ -1133,7 +1152,7 @@ function setActiveMoodButton(moodKey) {
 }
 
 // Local storage helpers for flower records.
-function loadFlowers() {
+function loadFlowers(options = {}) {
   let saved = "";
 
   try {
@@ -1149,11 +1168,84 @@ function loadFlowers() {
 
   try {
     const parsed = JSON.parse(saved);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) {
+      console.warn("历史花朵数据不是数组，已使用空花园兜底。");
+      return [];
+    }
+
+    const normalized = normalizeFlowerRecords(parsed);
+
+    if (options.trackChanges) {
+      loadedFlowersNeedSave = normalized.changed;
+    }
+
+    return normalized.records;
   } catch (error) {
     console.warn("读取历史花朵失败：", error);
     return [];
   }
+}
+
+function normalizeFlowerRecords(records) {
+  const usedIds = new Set();
+  const normalizedRecords = [];
+  let changed = false;
+  const now = Date.now();
+
+  records.forEach((record, index) => {
+    const normalized = normalizeFlowerRecord(record, index, usedIds, now);
+
+    if (!normalized.record) {
+      changed = true;
+      return;
+    }
+
+    if (normalized.changed) {
+      changed = true;
+    }
+
+    normalizedRecords.push(normalized.record);
+  });
+
+  return {
+    records: normalizedRecords,
+    changed
+  };
+}
+
+function normalizeFlowerRecord(record, index, usedIds, now) {
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    return { record: null, changed: true };
+  }
+
+  const nextRecord = { ...record };
+  let changed = false;
+  const fallbackCreatedAt = now - index;
+  const safeCreatedAt = getSafeCreatedAt(nextRecord, fallbackCreatedAt);
+  const normalizedId = normalizeFlowerId(nextRecord.id, usedIds);
+
+  if (nextRecord.id !== normalizedId) {
+    nextRecord.id = normalizedId;
+    changed = true;
+  }
+
+  if (nextRecord.createdAt !== safeCreatedAt) {
+    nextRecord.createdAt = safeCreatedAt;
+    changed = true;
+  }
+
+  return { record: nextRecord, changed };
+}
+
+function normalizeFlowerId(id, usedIds) {
+  let safeId = typeof id === "string" ? id.trim() : "";
+
+  while (!safeId || usedIds.has(safeId)) {
+    safeId = createFlowerId();
+  }
+
+  usedIds.add(safeId);
+  return safeId;
 }
 
 function saveFlowers() {
@@ -1274,6 +1366,91 @@ function getDetailNoteText(text) {
   return typeof text === "string" ? text.trim() : "";
 }
 
+function getSafeMoodKey(flower) {
+  const moodKey = typeof flower?.mood === "string" ? flower.mood : "";
+  const emotionKey = typeof flower?.emotion === "string" ? flower.emotion : "";
+
+  if (moodMap[moodKey]) {
+    return moodKey;
+  }
+
+  return moodMap[emotionKey] ? emotionKey : defaultMood;
+}
+
+function getSafeNoteText(note) {
+  const noteText = typeof note === "string" ? note.trim() : "";
+  return noteText || emptyNoteText;
+}
+
+function getSafeCreatedAt(flower, fallbackCreatedAt = Date.now()) {
+  const createdAt = Number(flower?.createdAt);
+
+  if (Number.isFinite(createdAt) && !Number.isNaN(new Date(createdAt).getTime())) {
+    return createdAt;
+  }
+
+  const parsedDate = parseFlowerDateText(flower?.date);
+  if (parsedDate) {
+    return parsedDate.getTime();
+  }
+
+  return fallbackCreatedAt;
+}
+
+function getSafeDateText(flower, fallbackCreatedAt) {
+  if (typeof flower?.date === "string" && flower.date.trim()) {
+    const dateText = flower.date.trim();
+    if (dateText === unknownDateText || parseFlowerDateText(dateText)) {
+      return dateText;
+    }
+  }
+
+  const createdDate = new Date(fallbackCreatedAt);
+  return Number.isNaN(createdDate.getTime()) ? unknownDateText : formatDate(createdDate);
+}
+
+function getSafeFlowerDateText(flower) {
+  if (typeof flower?.date === "string" && flower.date.trim()) {
+    const dateText = flower.date.trim();
+    if (dateText === unknownDateText || parseFlowerDateText(dateText)) {
+      return dateText;
+    }
+  }
+
+  const dateKey = getFlowerDateKey(flower || {});
+  if (!dateKey) {
+    return unknownDateText;
+  }
+
+  return formatCalendarFullDate(getDateFromKey(dateKey));
+}
+
+function getSafeRecordMoodIcon(icon, moodKey = defaultMood) {
+  const safeMoodKey = moodMap[moodKey] ? moodKey : defaultMood;
+  const safeIcon = getSafeMoodIconText(icon, "");
+
+  if (safeIcon && ICON_ANIMATION_MAP[safeIcon]) {
+    return safeIcon;
+  }
+
+  return getDefaultMoodIcon(safeMoodKey);
+}
+
+function getDefaultMoodIcon(moodKey = defaultMood) {
+  const safeMoodKey = moodMap[moodKey] ? moodKey : defaultMood;
+  return moodIconMap[safeMoodKey]?.[0] || moodMap[safeMoodKey].emoji;
+}
+
+function getSafeFlowerQuote(flower, moodKey = defaultMood) {
+  const quote = flower?.flowerQuote || flower?.flowerLanguage;
+
+  if (typeof quote === "string" && quote.trim()) {
+    return quote.trim();
+  }
+
+  return moodMap[moodKey]?.copy || moodMap[defaultMood].copy;
+}
+
 // Browse, search, and sort helpers.
 function getVisibleFlowers() {
   syncActiveTagFilter();
@@ -1324,7 +1501,7 @@ function sortVisibleFlowers(visibleFlowers) {
 }
 
 function getFlowerCreatedAt(flower, fallbackIndex) {
-  if (Number.isFinite(flower.createdAt)) {
+  if (Number.isFinite(flower?.createdAt)) {
     return flower.createdAt;
   }
 
@@ -1332,7 +1509,7 @@ function getFlowerCreatedAt(flower, fallbackIndex) {
 }
 
 function matchesMood(flower) {
-  return browseState.mood === "all" || flower.mood === browseState.mood;
+  return browseState.mood === "all" || getSafeMoodKey(flower) === browseState.mood;
 }
 
 function matchesKeyword(flower) {
@@ -1340,7 +1517,7 @@ function matchesKeyword(flower) {
     return true;
   }
 
-  const note = String(flower.note || "").toLowerCase();
+  const note = getSafeNoteText(flower.note).toLowerCase();
   return note.includes(browseState.keyword);
 }
 
@@ -1467,6 +1644,7 @@ function renderTagCloud() {
 }
 
 function resetBrowseState() {
+  clearTimeout(searchDebounceTimer);
   browseState = { ...defaultBrowseState };
   moodFilter.value = defaultBrowseState.mood;
   searchInput.value = defaultBrowseState.keyword;
@@ -1649,10 +1827,10 @@ function renderCalendarDayRecords(dateKey, recordsByDate = groupFlowersByDate(fl
 }
 
 function createCalendarRecord(flower) {
-  const moodKey = moodMap[flower.mood] ? flower.mood : "happy";
+  const moodKey = getSafeMoodKey(flower);
   const mood = moodMap[moodKey];
   const moodIcon = getFlowerMoodIcon(flower, mood);
-  const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
+  const flowerQuote = getSafeFlowerQuote(flower, moodKey);
   const record = document.createElement("article");
   const top = document.createElement("div");
   const moodText = document.createElement("span");
@@ -1668,9 +1846,9 @@ function createCalendarRecord(flower) {
   moodText.className = "calendar-record-mood";
   moodText.innerHTML = `${getAnimatedIconHtml(moodIcon, moodKey, "icon-animate-light")} ${mood.name}`;
   dateText.className = "calendar-record-date";
-  dateText.textContent = flower.date || "未知日期";
+  dateText.textContent = getSafeFlowerDateText(flower);
   note.className = "calendar-record-note";
-  note.textContent = flower.note || "没有留下文字";
+  note.textContent = getSafeNoteText(flower.note);
   meta.className = "calendar-record-meta";
   quote.className = "calendar-record-quote";
   quote.textContent = flowerQuote;
@@ -1695,7 +1873,7 @@ function createCalendarRecord(flower) {
 
 function getCalendarDayIcons(records) {
   return records.slice(0, 3).map((flower) => {
-    const moodKey = moodMap[flower.mood] ? flower.mood : "happy";
+    const moodKey = getSafeMoodKey(flower);
     const mood = moodMap[moodKey];
     const moodIcon = getFlowerMoodIcon(flower, mood);
 
@@ -1796,11 +1974,11 @@ function renderFlowers(options = {}) {
   }
 
   visibleFlowers.forEach((flower) => {
-    const moodKey = moodMap[flower.mood] ? flower.mood : "happy";
+    const moodKey = getSafeMoodKey(flower);
     const mood = moodMap[moodKey];
     const moodIcon = getFlowerMoodIcon(flower, mood);
     const iconAnimationClass = getIconAnimationClass(moodIcon, moodKey);
-    const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
+    const flowerQuote = getSafeFlowerQuote(flower, moodKey);
     const isFavorite = isFlowerFavorite(flower);
     const isEditing = flower.id === editingFlowerId;
     const card = document.createElement("article");
@@ -1822,7 +2000,7 @@ function renderFlowers(options = {}) {
         <span class="flower-emoji mood-icon mood-icon-${moodKey} ${iconAnimationClass}" aria-hidden="true"></span>
         <div class="flower-status">
           <button class="favorite-flower-button ${isFavorite ? "is-favorite" : ""}" type="button" aria-pressed="${String(isFavorite)}"></button>
-          <span class="flower-date">创建于 ${flower.date || "未知日期"}</span>
+          <span class="flower-date">创建于 ${getSafeFlowerDateText(flower)}</span>
         </div>
       </div>
       <div class="flower-body">
@@ -1856,11 +2034,11 @@ function renderFlowers(options = {}) {
     favoriteButton.setAttribute("aria-label", isFavorite ? "取消收藏这一朵" : "收藏这一朵");
 
     if (isEditing) {
-      card.querySelector(".flower-edit-input").value = flower.note || "";
+      card.querySelector(".flower-edit-input").value = getSafeNoteText(flower.note);
       card.querySelector(".save-edit-button").dataset.id = flower.id;
       card.querySelector(".cancel-edit-button").dataset.id = flower.id;
     } else {
-      card.querySelector(".flower-note").textContent = flower.note;
+      card.querySelector(".flower-note").textContent = getSafeNoteText(flower.note);
       card.querySelector(".detail-flower-button").dataset.id = flower.id;
       card.querySelector(".edit-flower-button").dataset.id = flower.id;
       card.querySelector(".delete-flower-button").dataset.id = flower.id;
@@ -1950,11 +2128,11 @@ function openFlowerDetail(flowerId) {
 }
 
 function fillFlowerDetail(flower) {
-  const moodKey = moodMap[flower.mood] ? flower.mood : "happy";
+  const moodKey = getSafeMoodKey(flower);
   const mood = moodMap[moodKey];
   const moodIcon = getFlowerMoodIcon(flower, mood);
   const iconAnimationClass = getIconAnimationClass(moodIcon, moodKey);
-  const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
+  const flowerQuote = getSafeFlowerQuote(flower, moodKey);
 
   if (detailMoodIcon) {
     detailMoodIcon.className = `detail-mood-icon mood-icon mood-icon-${moodKey} ${iconAnimationClass}`;
@@ -1962,7 +2140,7 @@ function fillFlowerDetail(flower) {
   }
 
   if (detailDate) {
-    detailDate.textContent = flower.date ? `创建于 ${flower.date}` : "创建日期未知";
+    detailDate.textContent = `创建于 ${getSafeFlowerDateText(flower)}`;
   }
 
   if (detailMoodText) {
@@ -1974,7 +2152,7 @@ function fillFlowerDetail(flower) {
   }
 
   if (detailNoteInput) {
-    detailNoteInput.value = flower.note || "";
+    detailNoteInput.value = getSafeNoteText(flower.note);
   }
 
   if (detailIntensitySelect) {
@@ -2175,16 +2353,14 @@ function shouldReduceMotion() {
 }
 
 // Overview statistics.
-function renderStats() {
-  const savedFlowers = loadFlowers();
-
+function renderStats(savedFlowers = loadFlowers()) {
   totalCount.textContent = `共 ${savedFlowers.length} 朵花`;
   statsList.innerHTML = "";
   gardenNote.textContent = getGardenNote(savedFlowers);
 
   Object.keys(moodMap).forEach((moodKey) => {
     const mood = moodMap[moodKey];
-    const count = savedFlowers.filter((flower) => flower.mood === moodKey).length;
+    const count = savedFlowers.filter((flower) => getSafeMoodKey(flower) === moodKey).length;
     const item = document.createElement("div");
     const iconHtml = getAnimatedIconHtml(mood.emoji, moodKey, "stats-icon icon-animate-light");
 
@@ -2200,7 +2376,7 @@ function renderStats() {
 
 // V1.4 data analysis.
 function renderAnalysis(options = {}) {
-  const savedFlowers = loadFlowers();
+  const savedFlowers = options.records || loadFlowers();
   const recentDays = getRecentSevenDays();
   const weekCounts = getRecentSevenDayCounts(savedFlowers, recentDays);
   const weekDateKeys = new Set(recentDays.map((day) => day.key));
@@ -2287,9 +2463,7 @@ function getMoodCounts(records) {
   });
 
   records.forEach((record) => {
-    if (moodMap[record.mood]) {
-      counts[record.mood] += 1;
-    }
+    counts[getSafeMoodKey(record)] += 1;
   });
 
   return counts;
@@ -2791,14 +2965,15 @@ function renderFavoriteReview(review) {
   list.className = "favorite-review-list";
 
   review.recent.forEach((flower) => {
-    const mood = moodMap[flower.mood] || moodMap.happy;
+    const moodKey = getSafeMoodKey(flower);
+    const mood = moodMap[moodKey];
     const item = document.createElement("div");
     const title = document.createElement("strong");
     const text = document.createElement("p");
 
     item.className = "favorite-review-item";
-    title.textContent = `${getFlowerMoodIcon(flower, mood)} ${mood.name} · ${flower.date || "未知日期"}`;
-    text.textContent = getShortText(flower.note || "没有留下文字", 42);
+    title.textContent = `${getFlowerMoodIcon(flower, mood)} ${mood.name} · ${getSafeFlowerDateText(flower)}`;
+    text.textContent = getShortText(getSafeNoteText(flower.note), 42);
 
     item.appendChild(title);
     item.appendChild(text);
@@ -2823,12 +2998,14 @@ function getMoodIntensityStats(records) {
   });
 
   records.forEach((record) => {
-    if (!moodMap[record.mood] || !hasFlowerIntensity(record)) {
+    const moodKey = getSafeMoodKey(record);
+
+    if (!hasFlowerIntensity(record)) {
       return;
     }
 
-    stats[record.mood].count += 1;
-    stats[record.mood].sum += getFlowerIntensity(record);
+    stats[moodKey].count += 1;
+    stats[moodKey].sum += getFlowerIntensity(record);
   });
 
   const items = Object.values(stats).map((item) => {
@@ -3005,7 +3182,7 @@ function getTopMoodText(topMoods) {
 }
 
 function getFlowerDateKey(flower) {
-  const createdAt = Number(flower.createdAt);
+  const createdAt = Number(flower?.createdAt);
 
   if (Number.isFinite(createdAt)) {
     const createdDate = new Date(createdAt);
@@ -3015,7 +3192,7 @@ function getFlowerDateKey(flower) {
     }
   }
 
-  const parsedDate = parseFlowerDateText(flower.date);
+  const parsedDate = parseFlowerDateText(flower?.date);
   return parsedDate ? getDateKey(parsedDate) : "";
 }
 
@@ -3071,16 +3248,17 @@ function createDiaryText(savedFlowers) {
   ];
 
   savedFlowers.forEach((flower, index) => {
-    const mood = moodMap[flower.mood] || moodMap.happy;
+    const moodKey = getSafeMoodKey(flower);
+    const mood = moodMap[moodKey];
     const moodIcon = getFlowerMoodIcon(flower, mood);
-    const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
+    const flowerQuote = getSafeFlowerQuote(flower, moodKey);
     const tags = getFlowerTags(flower);
     const detailNote = getFlowerDetailNote(flower);
 
     lines.push(
-      `${index + 1}. 创建日期：${flower.date || "未知日期"}`,
+      `${index + 1}. 创建日期：${getSafeFlowerDateText(flower)}`,
       `情绪：${moodIcon} ${mood.name}`,
-      `心情：${flower.note || "没有留下文字"}`,
+      `心情：${getSafeNoteText(flower.note)}`,
       `心情强度：${getFlowerIntensityText(flower)}`,
       `标签：${tags.length > 0 ? tags.join("、") : "无"}`,
       `收藏状态：${isFlowerFavorite(flower) ? "已收藏" : "未收藏"}`,
@@ -3216,35 +3394,50 @@ function validateBackupRecords(records) {
   }
 
   records.forEach((record, index) => {
-    if (!record || typeof record !== "object") {
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
       throw new Error(`第 ${index + 1} 条记录格式不正确，导入已取消。`);
     }
 
-    if (!moodMap[record.mood]) {
-      throw new Error(`第 ${index + 1} 条记录的情绪类型不正确，导入已取消。`);
-    }
-
-    if (typeof record.note !== "string" || !record.note.trim()) {
-      throw new Error(`第 ${index + 1} 条记录缺少心情文字，导入已取消。`);
+    if (!looksLikeFlowerRecord(record)) {
+      throw new Error(`第 ${index + 1} 条记录不像 Mood Garden 花卡片，导入已取消。`);
     }
   });
+}
+
+function looksLikeFlowerRecord(record) {
+  const hasMood = typeof record.mood === "string" || typeof record.emotion === "string";
+  const hasNote = typeof record.note === "string";
+  const hasDate = Object.prototype.hasOwnProperty.call(record, "createdAt")
+    || typeof record.date === "string";
+  const hasMoodGardenDetail = [
+    "moodIcon",
+    "flowerQuote",
+    "flowerLanguage",
+    "intensity",
+    "tags",
+    "isFavorite",
+    "detailNote"
+  ].some((field) => Object.prototype.hasOwnProperty.call(record, field));
+
+  return (hasMood && (hasNote || hasDate || hasMoodGardenDetail))
+    || (hasNote && (hasDate || hasMoodGardenDetail))
+    || (hasDate && hasMoodGardenDetail);
 }
 
 function normalizeImportedFlowers(records) {
   const now = Date.now();
 
   return records.map((record, index) => {
-    const mood = moodMap[record.mood];
-    const createdAt = getImportedCreatedAt(record.createdAt, now - index);
-    const date = typeof record.date === "string" && record.date.trim()
-      ? record.date.trim()
-      : formatDate(new Date(createdAt));
-    const moodIcon = getImportedMoodIcon(record);
+    const moodKey = getSafeMoodKey(record);
+    const mood = moodMap[moodKey];
+    const createdAt = getImportedCreatedAt(record, now - index);
+    const date = getSafeDateText(record, createdAt);
+    const moodIcon = getImportedMoodIcon(record, moodKey);
 
     const importedFlower = {
       id: getImportedFlowerId(record),
-      mood: record.mood,
-      note: record.note.trim(),
+      mood: moodKey,
+      note: getSafeNoteText(record.note),
       flowerQuote: getImportedFlowerQuote(record, mood),
       createdAt,
       date
@@ -3282,9 +3475,8 @@ function getImportedFlowerId(record) {
   return createFlowerId();
 }
 
-function getImportedCreatedAt(value, fallbackCreatedAt) {
-  const createdAt = Number(value);
-  return Number.isFinite(createdAt) ? createdAt : fallbackCreatedAt;
+function getImportedCreatedAt(record, fallbackCreatedAt) {
+  return getSafeCreatedAt(record, fallbackCreatedAt);
 }
 
 function getImportedFlowerQuote(record, mood) {
@@ -3301,7 +3493,7 @@ function getMoodSummary(records) {
   const summary = Object.keys(moodMap)
     .map((moodKey) => {
       const mood = moodMap[moodKey];
-      const count = records.filter((record) => record.mood === moodKey).length;
+      const count = records.filter((record) => getSafeMoodKey(record) === moodKey).length;
       return count > 0 ? `${mood.name} ${count} 朵` : "";
     })
     .filter(Boolean);
@@ -3502,17 +3694,18 @@ function getSafeHeroMoodKey(moodKey) {
 }
 
 function getFlowerMoodIcon(flower, mood) {
-  const safeMoodIcon = getSafeMoodIconText(flower.moodIcon, "");
+  const safeMoodKey = getSafeMoodKey(flower);
+  const safeMoodIcon = getSafeMoodIconText(flower?.moodIcon, "");
 
-  if (safeMoodIcon) {
+  if (safeMoodIcon && ICON_ANIMATION_MAP[safeMoodIcon]) {
     return safeMoodIcon;
   }
 
-  return mood.emoji;
+  return getDefaultMoodIcon(safeMoodKey) || mood.emoji;
 }
 
-function getImportedMoodIcon(record) {
-  return getSafeMoodIconText(record.moodIcon, "");
+function getImportedMoodIcon(record, moodKey) {
+  return getSafeRecordMoodIcon(record.moodIcon, moodKey);
 }
 
 function getRandomFlowerQuote(mood) {
@@ -3535,7 +3728,7 @@ function getGardenNote(savedFlowers) {
   }
 
   const latestFlower = savedFlowers[0];
-  const mood = moodMap[latestFlower.mood] || moodMap.happy;
+  const mood = moodMap[getSafeMoodKey(latestFlower)];
 
   return `最近一朵花是「${mood.name}」。愿这座小花园慢慢接住你的每一天。`;
 }
