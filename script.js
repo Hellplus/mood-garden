@@ -204,8 +204,13 @@ const flowerQuoteMap = {
 const storageKey = "moodGardenFlowers";
 const themeStorageKey = "moodGardenTheme";
 const guideStorageKey = "moodGardenGuideSeen";
-const appVersion = "2.1.0";
+const appVersion = "2.2.0";
 const maxMoodIconLength = 4;
+const defaultIntensity = 3;
+const minIntensity = 1;
+const maxIntensity = 5;
+const maxTagCount = 3;
+const maxTagLength = 12;
 const validThemes = ["light", "dark", "pink"];
 const themeNames = {
   light: "浅色",
@@ -216,6 +221,8 @@ const themeNames = {
 // DOM references.
 const moodOptions = document.querySelector("#moodOptions");
 const noteInput = document.querySelector("#noteInput");
+const intensitySelect = document.querySelector("#intensitySelect");
+const tagsInput = document.querySelector("#tagsInput");
 const plantButton = document.querySelector("#plantButton");
 const clearButton = document.querySelector("#clearButton");
 const exportButton = document.querySelector("#exportButton");
@@ -262,6 +269,19 @@ const mobileImportModeSelect = document.querySelector("#mobileImportModeSelect")
 const mobileClearButton = document.querySelector("#mobileClearButton");
 const onboardingGuide = document.querySelector("#onboardingGuide");
 const guideCloseButton = document.querySelector("#guideCloseButton");
+const flowerDetailOverlay = document.querySelector("#flowerDetailOverlay");
+const detailCloseButton = document.querySelector("#detailCloseButton");
+const detailCancelButton = document.querySelector("#detailCancelButton");
+const detailSaveButton = document.querySelector("#detailSaveButton");
+const detailMoodIcon = document.querySelector("#detailMoodIcon");
+const detailDate = document.querySelector("#detailDate");
+const detailMoodText = document.querySelector("#detailMoodText");
+const detailQuote = document.querySelector("#detailQuote");
+const detailNoteInput = document.querySelector("#detailNoteInput");
+const detailIntensitySelect = document.querySelector("#detailIntensitySelect");
+const detailTagsInput = document.querySelector("#detailTagsInput");
+const detailDiaryInput = document.querySelector("#detailDiaryInput");
+const detailFavoriteInput = document.querySelector("#detailFavoriteInput");
 
 // App state.
 const defaultBrowseState = {
@@ -288,6 +308,7 @@ let listAnimationTimer = 0;
 let analysisAnimationTimer = 0;
 let newFlowerId = "";
 let updatedFlowerId = "";
+let detailFlowerId = "";
 const addedMissingData = addMissingFlowerData();
 
 if (addedMissingData) {
@@ -324,11 +345,17 @@ plantButton.addEventListener("click", () => {
   }
 
   const moodIcon = getRandomMoodIcon(selectedMood);
+  const intensity = getSafeIntensity(intensitySelect ? intensitySelect.value : defaultIntensity);
+  const tags = parseTagsInput(tagsInput ? tagsInput.value : "");
   const flower = {
     id: createFlowerId(),
     mood: selectedMood,
     moodIcon,
     note,
+    intensity,
+    tags,
+    isFavorite: false,
+    detailNote: "",
     flowerQuote: getRandomFlowerQuote(selectedMood),
     createdAt: Date.now(),
     date: formatDate(new Date())
@@ -341,6 +368,12 @@ plantButton.addEventListener("click", () => {
   updateHeroContent(moodIcon, selectedMood);
 
   noteInput.value = "";
+  if (intensitySelect) {
+    intensitySelect.value = String(defaultIntensity);
+  }
+  if (tagsInput) {
+    tagsInput.value = "";
+  }
   showMessage(
     saved
       ? "已经种下了，一朵新的情绪花正在花园里发光。"
@@ -398,6 +431,16 @@ if (calendarGrid) {
     }
 
     selectCalendarDay(dayButton.dataset.dateKey);
+  });
+}
+
+if (calendarDayRecords) {
+  calendarDayRecords.addEventListener("click", (event) => {
+    const detailButton = event.target.closest(".detail-flower-button");
+
+    if (detailButton) {
+      openFlowerDetail(detailButton.dataset.id);
+    }
   });
 }
 
@@ -478,6 +521,38 @@ if (guideCloseButton) {
   });
 }
 
+if (detailCloseButton) {
+  detailCloseButton.addEventListener("click", () => {
+    closeFlowerDetail();
+  });
+}
+
+if (detailCancelButton) {
+  detailCancelButton.addEventListener("click", () => {
+    closeFlowerDetail();
+  });
+}
+
+if (detailSaveButton) {
+  detailSaveButton.addEventListener("click", () => {
+    saveFlowerDetail();
+  });
+}
+
+if (flowerDetailOverlay) {
+  flowerDetailOverlay.addEventListener("click", (event) => {
+    if (event.target === flowerDetailOverlay) {
+      closeFlowerDetail();
+    }
+  });
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && flowerDetailOverlay && !flowerDetailOverlay.hidden) {
+    closeFlowerDetail();
+  }
+});
+
 clearButton.addEventListener("click", () => {
   if (flowers.length === 0) {
     showMessage("花园现在是空的，先种下一朵花吧。", "info");
@@ -493,6 +568,7 @@ clearButton.addEventListener("click", () => {
 
   flowers = [];
   editingFlowerId = "";
+  closeFlowerDetail({ silent: true });
   const cleared = clearSavedFlowers();
   updateAllViews({ animateAnalysis: true });
   showMessage(
@@ -506,8 +582,20 @@ clearButton.addEventListener("click", () => {
 flowerList.addEventListener("click", (event) => {
   const saveEditButton = event.target.closest(".save-edit-button");
   const cancelEditButton = event.target.closest(".cancel-edit-button");
+  const detailButton = event.target.closest(".detail-flower-button");
+  const favoriteButton = event.target.closest(".favorite-flower-button");
   const editButton = event.target.closest(".edit-flower-button");
   const deleteButton = event.target.closest(".delete-flower-button");
+
+  if (detailButton) {
+    openFlowerDetail(detailButton.dataset.id);
+    return;
+  }
+
+  if (favoriteButton) {
+    toggleFlowerFavorite(favoriteButton.dataset.id);
+    return;
+  }
 
   if (saveEditButton) {
     saveEditedFlower(saveEditButton.dataset.id);
@@ -664,6 +752,10 @@ function switchMobileTab(tabName, options = {}) {
     return;
   }
 
+  if (flowerDetailOverlay && !flowerDetailOverlay.hidden) {
+    closeFlowerDetail({ silent: true });
+  }
+
   mobileTabButtons.forEach((button) => {
     const isActive = button.dataset.mobileTab === tabName;
 
@@ -787,6 +879,75 @@ function addMissingFlowerData() {
   });
 
   return changed;
+}
+
+// Optional detail fields. Older records may not have these fields.
+function getFlowerIntensity(flower) {
+  return getSafeIntensity(flower ? flower.intensity : defaultIntensity);
+}
+
+function getSafeIntensity(value) {
+  const intensity = Number(value);
+
+  if (Number.isInteger(intensity) && intensity >= minIntensity && intensity <= maxIntensity) {
+    return intensity;
+  }
+
+  return defaultIntensity;
+}
+
+function getFlowerTags(flower) {
+  if (!flower) {
+    return [];
+  }
+
+  if (Array.isArray(flower.tags)) {
+    return normalizeTags(flower.tags);
+  }
+
+  if (typeof flower.tags === "string") {
+    return parseTagsInput(flower.tags);
+  }
+
+  return [];
+}
+
+function normalizeTags(tags) {
+  const seen = new Set();
+  const normalized = [];
+
+  tags.forEach((tag) => {
+    const safeTag = String(tag || "").trim().slice(0, maxTagLength);
+
+    if (!safeTag || seen.has(safeTag)) {
+      return;
+    }
+
+    seen.add(safeTag);
+    normalized.push(safeTag);
+  });
+
+  return normalized.slice(0, maxTagCount);
+}
+
+function parseTagsInput(text) {
+  if (typeof text !== "string") {
+    return [];
+  }
+
+  return normalizeTags(text.split(/[\s,，、]+/));
+}
+
+function isFlowerFavorite(flower) {
+  return Boolean(flower && flower.isFavorite === true);
+}
+
+function getFlowerDetailNote(flower) {
+  return typeof flower?.detailNote === "string" ? flower.detailNote : "";
+}
+
+function getDetailNoteText(text) {
+  return typeof text === "string" ? text.trim() : "";
 }
 
 // Browse, search, and sort helpers.
@@ -1032,7 +1193,10 @@ function createCalendarRecord(flower) {
   const moodText = document.createElement("span");
   const dateText = document.createElement("span");
   const note = document.createElement("p");
+  const meta = document.createElement("div");
   const quote = document.createElement("p");
+  const actions = document.createElement("div");
+  const detailButton = document.createElement("button");
 
   record.className = "calendar-record";
   top.className = "calendar-record-top";
@@ -1042,14 +1206,24 @@ function createCalendarRecord(flower) {
   dateText.textContent = flower.date || "未知日期";
   note.className = "calendar-record-note";
   note.textContent = flower.note || "没有留下文字";
+  meta.className = "calendar-record-meta";
   quote.className = "calendar-record-quote";
   quote.textContent = flowerQuote;
+  actions.className = "calendar-record-actions";
+  detailButton.className = "detail-flower-button";
+  detailButton.type = "button";
+  detailButton.dataset.id = flower.id;
+  detailButton.textContent = "查看详情";
 
   top.appendChild(moodText);
   top.appendChild(dateText);
   record.appendChild(top);
   record.appendChild(note);
+  renderFlowerMeta(meta, flower);
+  record.appendChild(meta);
   record.appendChild(quote);
+  actions.appendChild(detailButton);
+  record.appendChild(actions);
 
   return record;
 }
@@ -1159,6 +1333,7 @@ function renderFlowers(options = {}) {
     const moodIcon = getFlowerMoodIcon(flower, mood);
     const iconAnimationClass = getIconAnimationClass(moodIcon, moodKey);
     const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
+    const isFavorite = isFlowerFavorite(flower);
     const isEditing = flower.id === editingFlowerId;
     const card = document.createElement("article");
     const cardClasses = ["flower-card", mood.className];
@@ -1177,7 +1352,10 @@ function renderFlowers(options = {}) {
     card.innerHTML = `
       <div class="flower-top">
         <span class="flower-emoji mood-icon mood-icon-${moodKey} ${iconAnimationClass}" aria-hidden="true"></span>
-        <span class="flower-date">创建于 ${flower.date || "未知日期"}</span>
+        <div class="flower-status">
+          <button class="favorite-flower-button ${isFavorite ? "is-favorite" : ""}" type="button" aria-pressed="${String(isFavorite)}"></button>
+          <span class="flower-date">创建于 ${flower.date || "未知日期"}</span>
+        </div>
       </div>
       <div class="flower-body">
         <span class="flower-label">今日情绪</span>
@@ -1185,6 +1363,7 @@ function renderFlowers(options = {}) {
         ${isEditing
           ? '<textarea class="flower-edit-input" rows="3" maxlength="80"></textarea>'
           : '<p class="flower-note"></p>'}
+        <div class="flower-meta"></div>
         <p class="flower-copy"></p>
       </div>
       <div class="flower-card-actions">
@@ -1194,12 +1373,19 @@ function renderFlowers(options = {}) {
             <button class="cancel-edit-button" type="button">取消</button>
           `
           : `
+            <button class="detail-flower-button" type="button">查看详情</button>
             <button class="edit-flower-button" type="button">编辑这一朵</button>
             <button class="delete-flower-button" type="button">删除这一朵</button>
           `}
       </div>
     `;
     card.querySelector(".flower-emoji").textContent = moodIcon;
+    renderFlowerMeta(card.querySelector(".flower-meta"), flower);
+
+    const favoriteButton = card.querySelector(".favorite-flower-button");
+    favoriteButton.dataset.id = flower.id;
+    favoriteButton.textContent = isFavorite ? "★ 已收藏" : "☆ 收藏";
+    favoriteButton.setAttribute("aria-label", isFavorite ? "取消收藏这一朵" : "收藏这一朵");
 
     if (isEditing) {
       card.querySelector(".flower-edit-input").value = flower.note || "";
@@ -1207,6 +1393,7 @@ function renderFlowers(options = {}) {
       card.querySelector(".cancel-edit-button").dataset.id = flower.id;
     } else {
       card.querySelector(".flower-note").textContent = flower.note;
+      card.querySelector(".detail-flower-button").dataset.id = flower.id;
       card.querySelector(".edit-flower-button").dataset.id = flower.id;
       card.querySelector(".delete-flower-button").dataset.id = flower.id;
     }
@@ -1237,6 +1424,180 @@ function createEmptyState(type, icon, title, text) {
   empty.appendChild(textElement);
 
   return empty;
+}
+
+function renderFlowerMeta(container, flower) {
+  if (!container) {
+    return;
+  }
+
+  const intensity = getFlowerIntensity(flower);
+  const tags = getFlowerTags(flower);
+  const hasDetailNote = Boolean(getFlowerDetailNote(flower));
+  const metaItems = [
+    `强度 ${intensity}/5`
+  ];
+
+  container.innerHTML = "";
+
+  if (isFlowerFavorite(flower)) {
+    metaItems.push("已收藏");
+  }
+
+  if (hasDetailNote) {
+    metaItems.push("有补充日记");
+  }
+
+  metaItems.forEach((text) => {
+    const chip = document.createElement("span");
+    chip.className = text === "已收藏" ? "record-chip is-favorite" : "record-chip";
+    chip.textContent = text;
+    container.appendChild(chip);
+  });
+
+  tags.forEach((tag) => {
+    const chip = document.createElement("span");
+    chip.className = "tag-chip";
+    chip.textContent = `#${tag}`;
+    container.appendChild(chip);
+  });
+}
+
+function openFlowerDetail(flowerId) {
+  const flower = flowers.find((item) => item.id === flowerId);
+
+  if (!flower || !flowerDetailOverlay) {
+    showMessage("没有找到这朵花，先刷新页面再试试看。", "error");
+    return;
+  }
+
+  detailFlowerId = flower.id;
+  fillFlowerDetail(flower);
+  flowerDetailOverlay.hidden = false;
+  document.body.classList.add("has-detail-open");
+
+  if (detailCloseButton) {
+    detailCloseButton.focus();
+  }
+}
+
+function fillFlowerDetail(flower) {
+  const moodKey = moodMap[flower.mood] ? flower.mood : "happy";
+  const mood = moodMap[moodKey];
+  const moodIcon = getFlowerMoodIcon(flower, mood);
+  const iconAnimationClass = getIconAnimationClass(moodIcon, moodKey);
+  const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
+
+  if (detailMoodIcon) {
+    detailMoodIcon.className = `detail-mood-icon mood-icon mood-icon-${moodKey} ${iconAnimationClass}`;
+    detailMoodIcon.textContent = moodIcon;
+  }
+
+  if (detailDate) {
+    detailDate.textContent = flower.date ? `创建于 ${flower.date}` : "创建日期未知";
+  }
+
+  if (detailMoodText) {
+    detailMoodText.textContent = `${mood.name} · ${isFlowerFavorite(flower) ? "已收藏" : "未收藏"}`;
+  }
+
+  if (detailQuote) {
+    detailQuote.textContent = `今日花语：${flowerQuote}`;
+  }
+
+  if (detailNoteInput) {
+    detailNoteInput.value = flower.note || "";
+  }
+
+  if (detailIntensitySelect) {
+    detailIntensitySelect.value = String(getFlowerIntensity(flower));
+  }
+
+  if (detailTagsInput) {
+    detailTagsInput.value = getFlowerTags(flower).join(" ");
+  }
+
+  if (detailDiaryInput) {
+    detailDiaryInput.value = getFlowerDetailNote(flower);
+  }
+
+  if (detailFavoriteInput) {
+    detailFavoriteInput.checked = isFlowerFavorite(flower);
+  }
+}
+
+function closeFlowerDetail(options = {}) {
+  if (!flowerDetailOverlay) {
+    return;
+  }
+
+  flowerDetailOverlay.hidden = true;
+  detailFlowerId = "";
+  document.body.classList.remove("has-detail-open");
+
+  if (!options.silent) {
+    showMessage("详情已关闭，这朵花保持原来的样子。", "info");
+  }
+}
+
+function saveFlowerDetail() {
+  const flower = flowers.find((item) => item.id === detailFlowerId);
+
+  if (!flower) {
+    showMessage("没有找到这朵花，先刷新页面再试试看。", "error");
+    closeFlowerDetail({ silent: true });
+    return;
+  }
+
+  const nextNote = detailNoteInput ? detailNoteInput.value.trim() : "";
+
+  if (!nextNote) {
+    showMessage("心情文字不能为空，这朵花还保留着原来的内容。", "error");
+    if (detailNoteInput) {
+      detailNoteInput.focus();
+    }
+    return;
+  }
+
+  flower.note = nextNote;
+  flower.intensity = getSafeIntensity(detailIntensitySelect ? detailIntensitySelect.value : defaultIntensity);
+  flower.tags = parseTagsInput(detailTagsInput ? detailTagsInput.value : "");
+  flower.detailNote = getDetailNoteText(detailDiaryInput ? detailDiaryInput.value : "");
+  flower.isFavorite = Boolean(detailFavoriteInput && detailFavoriteInput.checked);
+
+  editingFlowerId = "";
+  updatedFlowerId = flower.id;
+  const saved = saveFlowers();
+
+  closeFlowerDetail({ silent: true });
+  updateAllViews({ animateAnalysis: true });
+  showMessage(
+    saved
+      ? "这朵花的详情已经保存好了。"
+      : "页面里的详情已更新，但浏览器暂时没能保存这次修改。",
+    saved ? "success" : "error"
+  );
+}
+
+function toggleFlowerFavorite(flowerId) {
+  const flower = flowers.find((item) => item.id === flowerId);
+
+  if (!flower) {
+    showMessage("没有找到这朵花，先刷新页面再试试看。", "error");
+    return;
+  }
+
+  flower.isFavorite = !isFlowerFavorite(flower);
+  updatedFlowerId = flowerId;
+  const saved = saveFlowers();
+
+  updateAllViews({ animateAnalysis: true });
+  showMessage(
+    saved
+      ? (flower.isFavorite ? "已经把这朵花收藏起来了。" : "已经取消收藏这一朵。")
+      : "收藏状态已更新，但浏览器暂时没能保存这次修改。",
+    saved ? "success" : "error"
+  );
 }
 
 function startEditingFlower(flowerId) {
@@ -1325,6 +1686,9 @@ function deleteFlower(flowerId, flowerCard) {
 
 function removeFlowerById(flowerId) {
   flowers = flowers.filter((flower) => flower.id !== flowerId);
+  if (detailFlowerId === flowerId) {
+    closeFlowerDetail({ silent: true });
+  }
   const saved = saveFlowers();
 
   updateAllViews({ animateAnalysis: true });
@@ -1735,11 +2099,17 @@ function createDiaryText(savedFlowers) {
     const mood = moodMap[flower.mood] || moodMap.happy;
     const moodIcon = getFlowerMoodIcon(flower, mood);
     const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
+    const tags = getFlowerTags(flower);
+    const detailNote = getFlowerDetailNote(flower);
 
     lines.push(
       `${index + 1}. 创建日期：${flower.date || "未知日期"}`,
       `情绪：${moodIcon} ${mood.name}`,
       `心情：${flower.note || "没有留下文字"}`,
+      `心情强度：${getFlowerIntensity(flower)} / 5`,
+      `标签：${tags.length > 0 ? tags.join("、") : "无"}`,
+      `收藏状态：${isFlowerFavorite(flower) ? "已收藏" : "未收藏"}`,
+      `补充日记：${detailNote || "无"}`,
       `随机花语：${flowerQuote}`,
       ""
     );
@@ -1909,6 +2279,22 @@ function normalizeImportedFlowers(records) {
       importedFlower.moodIcon = moodIcon;
     }
 
+    if (Object.prototype.hasOwnProperty.call(record, "intensity")) {
+      importedFlower.intensity = getSafeIntensity(record.intensity);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(record, "tags")) {
+      importedFlower.tags = getFlowerTags(record);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(record, "isFavorite")) {
+      importedFlower.isFavorite = record.isFavorite === true;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(record, "detailNote")) {
+      importedFlower.detailNote = getDetailNoteText(record.detailNote);
+    }
+
     return importedFlower;
   });
 }
@@ -1964,6 +2350,8 @@ function confirmImport(importedFlowers, importMode) {
 }
 
 function importBackupRecords(importedFlowers, importMode) {
+  closeFlowerDetail({ silent: true });
+
   if (importMode === "replace") {
     flowers = ensureUniqueFlowerIds(importedFlowers, new Set());
   } else {
