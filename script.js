@@ -204,7 +204,7 @@ const flowerQuoteMap = {
 const storageKey = "moodGardenFlowers";
 const themeStorageKey = "moodGardenTheme";
 const guideStorageKey = "moodGardenGuideSeen";
-const appVersion = "2.4.0";
+const appVersion = "2.5.0";
 const maxMoodIconLength = 4;
 const defaultIntensity = 3;
 const minIntensity = 1;
@@ -236,6 +236,10 @@ const statsList = document.querySelector("#statsList");
 const gardenNote = document.querySelector("#gardenNote");
 const analysisPanel = document.querySelector(".analysis-panel");
 const analysisSummary = document.querySelector("#analysisSummary");
+const insightOverview = document.querySelector("#insightOverview");
+const insightSwitchButtons = document.querySelectorAll("[data-insight-view]");
+const insightPanels = document.querySelectorAll("[data-insight-panel]");
+const todayInsight = document.querySelector("#todayInsight");
 const weekChart = document.querySelector("#weekChart");
 const moodDistribution = document.querySelector("#moodDistribution");
 const topMood = document.querySelector("#topMood");
@@ -243,9 +247,11 @@ const streakDays = document.querySelector("#streakDays");
 const monthTrendChart = document.querySelector("#monthTrendChart");
 const intensityAnalysis = document.querySelector("#intensityAnalysis");
 const tagAnalysis = document.querySelector("#tagAnalysis");
+const weekTagAnalysis = document.querySelector("#weekTagAnalysis");
 const favoriteReview = document.querySelector("#favoriteReview");
 const moodIntensityAnalysis = document.querySelector("#moodIntensityAnalysis");
 const monthlyReview = document.querySelector("#monthlyReview");
+const weeklyReview = document.querySelector("#weeklyReview");
 const message = document.querySelector("#message");
 const moodFilter = document.querySelector("#moodFilter");
 const searchInput = document.querySelector("#searchInput");
@@ -305,6 +311,7 @@ const defaultBrowseState = {
 
 const mobileTabs = ["record", "garden", "analysis", "data"];
 const gardenViews = ["list", "calendar"];
+const insightViews = ["today", "week", "month"];
 
 const backupAppName = "Mood Garden";
 const backupVersion = appVersion;
@@ -314,6 +321,7 @@ let flowers = loadFlowers();
 let editingFlowerId = "";
 let browseState = { ...defaultBrowseState };
 let gardenView = "list";
+let activeInsightView = "week";
 let calendarCurrentDate = getStartOfDay(new Date());
 let selectedCalendarDateKey = getDateKey(new Date());
 let toastTimer = 0;
@@ -333,6 +341,7 @@ initHeroMoodIcon();
 setActiveMoodButton(selectedMood);
 initMobileTabs();
 initGardenViewSwitcher();
+initInsightSwitcher();
 updateAllViews();
 initOnboardingGuide();
 registerServiceWorker();
@@ -821,6 +830,38 @@ function switchMobileTab(tabName, options = {}) {
 
 function isMobileLayout() {
   return window.matchMedia("(max-width: 720px)").matches;
+}
+
+function initInsightSwitcher() {
+  switchInsightView(activeInsightView);
+
+  insightSwitchButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      switchInsightView(button.dataset.insightView);
+    });
+  });
+}
+
+function switchInsightView(viewName) {
+  if (!insightViews.includes(viewName)) {
+    return;
+  }
+
+  activeInsightView = viewName;
+
+  insightSwitchButtons.forEach((button) => {
+    const isActive = button.dataset.insightView === viewName;
+
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+
+  insightPanels.forEach((panel) => {
+    const isActive = panel.dataset.insightPanel === viewName;
+
+    panel.classList.toggle("active", isActive);
+    panel.hidden = !isActive;
+  });
 }
 
 function syncMobileImportMode() {
@@ -1936,17 +1977,22 @@ function renderAnalysis(options = {}) {
   const weekFlowers = savedFlowers.filter((flower) => {
     return weekDateKeys.has(getFlowerDateKey(flower));
   });
+  const todayFlowers = getTodayRecords(savedFlowers);
+  const monthFlowers = getCurrentMonthRecords(savedFlowers);
   const moodCounts = getMoodCounts(savedFlowers);
   const topMoods = getTopMoods(moodCounts);
   const weekTopMoods = getTopMoods(getMoodCounts(weekFlowers));
   const streak = getRecordStreak(savedFlowers);
 
-  analysisSummary.textContent = createWeeklyReview(weekFlowers.length, weekTopMoods);
+  analysisSummary.textContent = createInsightSummary(savedFlowers, monthFlowers, topMoods);
+  renderInsightOverview(savedFlowers, monthFlowers, topMoods);
+  renderTodayInsights(todayFlowers);
   renderWeekChart(weekCounts, weekFlowers.length);
-  renderMoodDistribution(moodCounts, savedFlowers.length);
-  renderTopMood(topMoods, savedFlowers.length);
+  renderTopMood(weekTopMoods, weekFlowers.length);
+  renderWeekTagAnalysis(getTopTags(weekFlowers, 3));
+  renderWeeklyReview(createWeeklyReview(weekFlowers.length, weekTopMoods));
   renderStreak(streak, savedFlowers.length);
-  renderAdvancedAnalysis(savedFlowers);
+  renderAdvancedAnalysis(savedFlowers, monthFlowers);
   if (options.animate) {
     animateAnalysisUpdate();
   }
@@ -2070,6 +2116,120 @@ function getRecordStreak(records) {
     latestDate,
     isLatestToday: latestKey === todayKey
   };
+}
+
+function getTodayRecords(records) {
+  const todayKey = getDateKey(new Date());
+
+  return records.filter((record) => getFlowerDateKey(record) === todayKey);
+}
+
+function createInsightSummary(records, monthRecords, topMoods) {
+  if (records.length === 0) {
+    return "花园还在等第一朵花。等你愿意记录时，这里会慢慢长出属于你的情绪洞察。";
+  }
+
+  if (records.length < 3) {
+    return `目前花园里有 ${records.length} 朵花。再多记录几天，趋势会更清晰。`;
+  }
+
+  const topMoodText = getTopMoodText(topMoods);
+  return `花园里已经有 ${records.length} 朵花，本月记录了 ${monthRecords.length} 朵，${topMoodText}出现得比较多。这里的洞察只基于你的记录做温柔回顾。`;
+}
+
+function renderInsightOverview(records, monthRecords, topMoods) {
+  if (!insightOverview) {
+    return;
+  }
+
+  const intensityStats = getIntensityStats(records);
+  const topTags = getTopTags(records, 2);
+  const tagText = topTags.length > 0
+    ? topTags.map((item) => `#${item.tag}`).join("、")
+    : "暂未形成";
+  const intensityText = intensityStats.count > 0
+    ? intensityStats.average.toFixed(1)
+    : "未设置";
+  const topMoodText = topMoods.length > 0 ? getTopMoodText(topMoods) : "慢慢记录";
+
+  insightOverview.innerHTML = "";
+  insightOverview.appendChild(createInsightOverviewCard("总记录", `${records.length} 朵`));
+  insightOverview.appendChild(createInsightOverviewCard("本月记录", `${monthRecords.length} 朵`));
+  insightOverview.appendChild(createInsightOverviewCard("常见情绪", topMoodText));
+  insightOverview.appendChild(createInsightOverviewCard("平均强度", intensityText));
+  insightOverview.appendChild(createInsightOverviewCard("常用标签", tagText));
+}
+
+function createInsightOverviewCard(label, value) {
+  const card = document.createElement("div");
+  const valueText = document.createElement("strong");
+  const labelText = document.createElement("span");
+
+  card.className = "insight-overview-card";
+  valueText.textContent = value;
+  labelText.textContent = label;
+
+  card.appendChild(valueText);
+  card.appendChild(labelText);
+  return card;
+}
+
+function renderTodayInsights(todayRecords) {
+  if (!todayInsight) {
+    return;
+  }
+
+  todayInsight.innerHTML = "";
+
+  if (todayRecords.length === 0) {
+    todayInsight.appendChild(createAnalysisEmpty("今天还没有种下花。如果愿意，可以从一朵小小的记录开始。"));
+    return;
+  }
+
+  const moodCounts = getMoodCounts(todayRecords);
+  const topMoods = getTopMoods(moodCounts);
+  const intensityStats = getIntensityStats(todayRecords);
+  const metrics = document.createElement("div");
+  const moodList = document.createElement("div");
+  const note = document.createElement("p");
+
+  metrics.className = "analysis-metric-grid";
+  metrics.appendChild(createAnalysisMetric("今日记录", `${todayRecords.length} 朵`));
+  metrics.appendChild(createAnalysisMetric("今日情绪", getTopMoodText(topMoods)));
+  metrics.appendChild(createAnalysisMetric("今日强度", intensityStats.count > 0 ? intensityStats.average.toFixed(1) : "未设置"));
+
+  moodList.className = "today-mood-list";
+  Object.keys(moodMap).forEach((moodKey) => {
+    const count = moodCounts[moodKey] || 0;
+
+    if (count === 0) {
+      return;
+    }
+
+    const chip = document.createElement("span");
+    chip.className = "today-mood-chip";
+    chip.innerHTML = `${getAnimatedIconHtml(moodMap[moodKey].emoji, moodKey, "icon-animate-light")} ${moodMap[moodKey].name} ${count}`;
+    moodList.appendChild(chip);
+  });
+
+  note.className = "analysis-text";
+  note.textContent = "这些只是今天留下的记录，不需要被解释成任何结论。";
+
+  todayInsight.appendChild(metrics);
+  todayInsight.appendChild(moodList);
+  todayInsight.appendChild(note);
+}
+
+function renderWeekTagAnalysis(topTags) {
+  renderTagRank(weekTagAnalysis, topTags, "这一周还没有明显标签。再多记录几次，关键词会慢慢浮现。");
+}
+
+function renderWeeklyReview(reviewText) {
+  if (!weeklyReview) {
+    return;
+  }
+
+  weeklyReview.textContent = reviewText;
 }
 
 function renderWeekChart(weekCounts, totalCountValue) {
@@ -2204,13 +2364,14 @@ function renderStreak(streak, totalCountValue) {
   streakDays.appendChild(box);
 }
 
-// V2.4 advanced analysis. These views always use all saved records, not filtered results.
-function renderAdvancedAnalysis(records) {
+// V2.4/V2.5 advanced analysis. These views use saved records, not filtered results.
+function renderAdvancedAnalysis(records, monthRecords = getCurrentMonthRecords(records)) {
   renderMonthTrend(getRecentDayCounts(records, getRecentDays(30)), records.length);
-  renderIntensityAnalysis(getIntensityStats(records));
-  renderTagAnalysis(getTopTags(records, 5));
-  renderFavoriteReview(getFavoriteReview(records, 3));
-  renderMoodIntensityAnalysis(getMoodIntensityStats(records));
+  renderMoodDistribution(getMoodCounts(monthRecords), monthRecords.length);
+  renderIntensityAnalysis(getIntensityStats(monthRecords));
+  renderTagAnalysis(getTopTags(monthRecords, 5));
+  renderFavoriteReview(getFavoriteReview(monthRecords, 3));
+  renderMoodIntensityAnalysis(getMoodIntensityStats(monthRecords));
   renderMonthlyReview(createMonthlyReview(records));
 }
 
@@ -2334,14 +2495,18 @@ function getTopTags(records, limit) {
 }
 
 function renderTagAnalysis(topTags) {
-  if (!tagAnalysis) {
+  renderTagRank(tagAnalysis, topTags, "本月还没有常用标签。给记录加上关键词后，标签会在这里慢慢聚拢。");
+}
+
+function renderTagRank(container, topTags, emptyText) {
+  if (!container) {
     return;
   }
 
-  tagAnalysis.innerHTML = "";
+  container.innerHTML = "";
 
   if (topTags.length === 0) {
-    tagAnalysis.appendChild(createAnalysisEmpty("还没有常用标签。给记录加上关键词后，标签会在这里慢慢聚拢。"));
+    container.appendChild(createAnalysisEmpty(emptyText));
     return;
   }
 
@@ -2362,7 +2527,7 @@ function renderTagAnalysis(topTags) {
     }));
   });
 
-  tagAnalysis.appendChild(list);
+  container.appendChild(list);
 }
 
 function getFavoriteReview(records, limit) {

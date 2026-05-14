@@ -961,6 +961,154 @@ input[type="text"]:focus {
   gap: 16px;
 }
 
+.insight-overview {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 229, 184, 0.26), transparent 28%),
+    rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12px 26px rgba(67, 73, 63, 0.06);
+  animation: analysisFadeUp 520ms ease 170ms both;
+}
+
+.insight-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.insight-heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.18rem;
+}
+
+.insight-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.insight-overview-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.insight-overview-card strong {
+  display: block;
+  overflow: hidden;
+  color: var(--accent);
+  font-size: 1.28rem;
+  font-weight: 900;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insight-overview-card span {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.insight-switcher {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.insight-switch-button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 14px;
+  color: var(--soft-ink);
+  background: transparent;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.insight-switch-button:hover {
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.insight-switch-button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.insight-switch-button.active {
+  color: var(--paper);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: var(--button-shadow);
+}
+
+.insight-panel[hidden] {
+  display: none;
+}
+
+.insight-panel.active {
+  animation: analysisFadeUp 360ms ease both;
+}
+
+.today-insight-grid {
+  grid-template-columns: 1fr;
+}
+
+.weekly-review-card,
+.monthly-review-card {
+  grid-column: 1 / -1;
+}
+
+.today-insight,
+.weekly-review {
+  min-height: 142px;
+  padding: 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 18px;
+  color: var(--soft-ink);
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255, 229, 184, 0.3), transparent 30%),
+    rgba(255, 255, 255, 0.34);
+  line-height: 1.75;
+}
+
+.today-mood-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.today-mood-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--soft-ink);
+  background: rgba(255, 255, 255, 0.34);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
 .advanced-analysis {
   margin-top: 18px;
 }
@@ -3350,6 +3498,12 @@ body[data-theme="dark"] .mood-button,
 body[data-theme="dark"] .stats-item,
 body[data-theme="dark"] .garden-note,
 body[data-theme="dark"] .analysis-summary,
+body[data-theme="dark"] .insight-overview,
+body[data-theme="dark"] .insight-overview-card,
+body[data-theme="dark"] .insight-switcher,
+body[data-theme="dark"] .today-insight,
+body[data-theme="dark"] .weekly-review,
+body[data-theme="dark"] .today-mood-chip,
 body[data-theme="dark"] .analysis-card,
 body[data-theme="dark"] .analysis-empty,
 body[data-theme="dark"] .top-mood-box,
@@ -3763,6 +3917,10 @@ body[data-theme="pink"] .mood-excited {
     grid-template-columns: 1fr;
   }
 
+  .insight-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .section-heading {
     align-items: flex-start;
     flex-direction: column;
@@ -3821,11 +3979,29 @@ body[data-theme="pink"] .mood-excited {
   .stats-list,
   .analysis-grid,
   .advanced-analysis-grid,
+  .insight-overview-grid,
   .browse-controls,
   .entry-extra-fields,
   .detail-form-grid,
   .advanced-filter-grid {
     grid-template-columns: 1fr;
+  }
+
+  .insight-overview,
+  .today-insight,
+  .weekly-review,
+  .monthly-review {
+    padding: 16px;
+  }
+
+  .insight-switcher {
+    position: sticky;
+    top: 10px;
+    z-index: 3;
+  }
+
+  .insight-switch-button {
+    min-height: 42px;
   }
 
   .advanced-analysis {
@@ -4049,6 +4225,8 @@ body[data-theme="pink"] .mood-excited {
   .analysis-panel.is-updating .analysis-summary,
   .analysis-panel.is-updating .analysis-card,
   .analysis-summary,
+  .insight-overview,
+  .insight-panel.active,
   .analysis-card,
   .analysis-empty,
   .week-day,

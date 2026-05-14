@@ -70,7 +70,7 @@
           <li>所有记录保存在当前浏览器的 localStorage 中，清空花园会删除当前浏览器里的记录。</li>
         </ul>
       </details>
-      <span class="version-badge" aria-label="当前项目版本">v2.4</span>
+      <span class="version-badge" aria-label="当前项目版本">v2.5</span>
     </section>
 
     <div class="entry-layout is-mobile-active" data-mobile-section="record">
@@ -140,62 +140,100 @@
 
       <p class="analysis-summary" id="analysisSummary">再多种几朵花，花园就能长出更清晰的情绪轨迹。</p>
 
-      <div class="analysis-grid">
-        <article class="analysis-card">
-          <h3>最近 7 天</h3>
-          <div class="week-chart" id="weekChart"></div>
-        </article>
+      <section class="insight-overview" aria-labelledby="insight-overview-title">
+        <div class="insight-heading">
+          <div>
+            <p class="section-kicker">Insight dashboard</p>
+            <h3 id="insight-overview-title">洞察总览</h3>
+          </div>
+        </div>
+        <div class="insight-overview-grid" id="insightOverview"></div>
+      </section>
 
-        <article class="analysis-card">
-          <h3>情绪分布</h3>
-          <div class="mood-distribution" id="moodDistribution"></div>
-        </article>
-
-        <article class="analysis-card">
-          <h3>最常出现的情绪</h3>
-          <div class="top-mood" id="topMood"></div>
-        </article>
-
-        <article class="analysis-card">
-          <h3>连续记录</h3>
-          <div class="streak-days" id="streakDays"></div>
-        </article>
+      <div class="insight-switcher" role="tablist" aria-label="数据洞察时间范围">
+        <button class="insight-switch-button" id="insight-tab-today" type="button" role="tab" data-insight-view="today" aria-controls="todayInsightPanel" aria-selected="false">今日</button>
+        <button class="insight-switch-button active" id="insight-tab-week" type="button" role="tab" data-insight-view="week" aria-controls="weekInsightPanel" aria-selected="true">本周</button>
+        <button class="insight-switch-button" id="insight-tab-month" type="button" role="tab" data-insight-view="month" aria-controls="monthInsightPanel" aria-selected="false">本月</button>
       </div>
 
-      <details class="advanced-analysis" open>
-        <summary>进阶回顾</summary>
-        <div class="advanced-analysis-grid">
-          <article class="analysis-card">
-            <h3>最近 30 天趋势</h3>
-            <div class="month-trend-chart" id="monthTrendChart"></div>
-          </article>
+      <div class="insight-panels">
+        <section class="insight-panel" id="todayInsightPanel" data-insight-panel="today" role="tabpanel" aria-labelledby="insight-tab-today" hidden>
+          <div class="analysis-grid today-insight-grid">
+            <article class="analysis-card">
+              <h3>今日洞察</h3>
+              <div class="today-insight" id="todayInsight"></div>
+            </article>
+          </div>
+        </section>
 
-          <article class="analysis-card">
-            <h3>心情强度</h3>
-            <div class="intensity-analysis" id="intensityAnalysis"></div>
-          </article>
+        <section class="insight-panel active" id="weekInsightPanel" data-insight-panel="week" role="tabpanel" aria-labelledby="insight-tab-week">
+          <div class="analysis-grid week-insight-grid">
+            <article class="analysis-card">
+              <h3>最近 7 天</h3>
+              <div class="week-chart" id="weekChart"></div>
+            </article>
 
-          <article class="analysis-card">
-            <h3>常用标签 Top 5</h3>
-            <div class="tag-analysis" id="tagAnalysis"></div>
-          </article>
+            <article class="analysis-card">
+              <h3>本周常见情绪</h3>
+              <div class="top-mood" id="topMood"></div>
+            </article>
 
-          <article class="analysis-card">
-            <h3>收藏回顾</h3>
-            <div class="favorite-review" id="favoriteReview"></div>
-          </article>
+            <article class="analysis-card">
+              <h3>本周常用标签</h3>
+              <div class="tag-analysis" id="weekTagAnalysis"></div>
+            </article>
 
-          <article class="analysis-card">
-            <h3>情绪 × 强度</h3>
-            <div class="mood-intensity-analysis" id="moodIntensityAnalysis"></div>
-          </article>
+            <article class="analysis-card">
+              <h3>连续记录</h3>
+              <div class="streak-days" id="streakDays"></div>
+            </article>
 
-          <article class="analysis-card monthly-review-card">
-            <h3>月度回顾</h3>
-            <div class="monthly-review" id="monthlyReview"></div>
-          </article>
-        </div>
-      </details>
+            <article class="analysis-card weekly-review-card">
+              <h3>本周回顾</h3>
+              <div class="weekly-review" id="weeklyReview"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="insight-panel" id="monthInsightPanel" data-insight-panel="month" role="tabpanel" aria-labelledby="insight-tab-month" hidden>
+          <div class="advanced-analysis-grid month-insight-grid">
+            <article class="analysis-card">
+              <h3>最近 30 天趋势</h3>
+              <div class="month-trend-chart" id="monthTrendChart"></div>
+            </article>
+
+            <article class="analysis-card">
+              <h3>本月情绪分布</h3>
+              <div class="mood-distribution" id="moodDistribution"></div>
+            </article>
+
+            <article class="analysis-card">
+              <h3>本月心情强度</h3>
+              <div class="intensity-analysis" id="intensityAnalysis"></div>
+            </article>
+
+            <article class="analysis-card">
+              <h3>本月 Top 标签</h3>
+              <div class="tag-analysis" id="tagAnalysis"></div>
+            </article>
+
+            <article class="analysis-card">
+              <h3>本月收藏回顾</h3>
+              <div class="favorite-review" id="favoriteReview"></div>
+            </article>
+
+            <article class="analysis-card">
+              <h3>本月情绪 × 强度</h3>
+              <div class="mood-intensity-analysis" id="moodIntensityAnalysis"></div>
+            </article>
+
+            <article class="analysis-card monthly-review-card">
+              <h3>月度回顾</h3>
+              <div class="monthly-review" id="monthlyReview"></div>
+            </article>
+          </div>
+        </section>
+      </div>
     </section>
 
     <section class="browse-panel glass-card" id="mobile-garden" data-mobile-section="garden" aria-labelledby="browse-title">
@@ -374,13 +412,13 @@
         </article>
         <article class="app-info-card">
           <span class="app-info-label">关于项目</span>
-          <p>Mood Garden v2.4 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
+          <p>Mood Garden v2.5 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
         </article>
       </div>
     </section>
 
     <footer class="site-footer" data-mobile-section="data" aria-label="项目信息">
-      <strong>Mood Garden 情绪花园 v2.4</strong>
+      <strong>Mood Garden 情绪花园 v2.5</strong>
       <span>数据保存在你的浏览器 localStorage 中。</span>
       <span>仅用于个人记录，不提供心理诊断或医疗建议。</span>
     </footer>
