@@ -70,7 +70,7 @@
           <li>所有记录保存在当前浏览器的 localStorage 中，清空花园会删除当前浏览器里的记录。</li>
         </ul>
       </details>
-      <span class="version-badge" aria-label="当前项目版本">v2.3</span>
+      <span class="version-badge" aria-label="当前项目版本">v2.4</span>
     </section>
 
     <div class="entry-layout is-mobile-active" data-mobile-section="record">
@@ -161,6 +161,41 @@
           <div class="streak-days" id="streakDays"></div>
         </article>
       </div>
+
+      <details class="advanced-analysis" open>
+        <summary>进阶回顾</summary>
+        <div class="advanced-analysis-grid">
+          <article class="analysis-card">
+            <h3>最近 30 天趋势</h3>
+            <div class="month-trend-chart" id="monthTrendChart"></div>
+          </article>
+
+          <article class="analysis-card">
+            <h3>心情强度</h3>
+            <div class="intensity-analysis" id="intensityAnalysis"></div>
+          </article>
+
+          <article class="analysis-card">
+            <h3>常用标签 Top 5</h3>
+            <div class="tag-analysis" id="tagAnalysis"></div>
+          </article>
+
+          <article class="analysis-card">
+            <h3>收藏回顾</h3>
+            <div class="favorite-review" id="favoriteReview"></div>
+          </article>
+
+          <article class="analysis-card">
+            <h3>情绪 × 强度</h3>
+            <div class="mood-intensity-analysis" id="moodIntensityAnalysis"></div>
+          </article>
+
+          <article class="analysis-card monthly-review-card">
+            <h3>月度回顾</h3>
+            <div class="monthly-review" id="monthlyReview"></div>
+          </article>
+        </div>
+      </details>
     </section>
 
     <section class="browse-panel glass-card" id="mobile-garden" data-mobile-section="garden" aria-labelledby="browse-title">
@@ -339,13 +374,13 @@
         </article>
         <article class="app-info-card">
           <span class="app-info-label">关于项目</span>
-          <p>Mood Garden v2.3 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
+          <p>Mood Garden v2.4 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
         </article>
       </div>
     </section>
 
     <footer class="site-footer" data-mobile-section="data" aria-label="项目信息">
-      <strong>Mood Garden 情绪花园 v2.3</strong>
+      <strong>Mood Garden 情绪花园 v2.4</strong>
       <span>数据保存在你的浏览器 localStorage 中。</span>
       <span>仅用于个人记录，不提供心理诊断或医疗建议。</span>
     </footer>

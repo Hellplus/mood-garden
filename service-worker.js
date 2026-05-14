@@ -1,4 +1,4 @@
-const CACHE_NAME = "mood-garden-v2.3.0";
+const CACHE_NAME = "mood-garden-v2.4.1";
 const APP_ASSETS = [
   "./",
   "./index.html",

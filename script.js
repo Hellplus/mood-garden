@@ -204,7 +204,7 @@ const flowerQuoteMap = {
 const storageKey = "moodGardenFlowers";
 const themeStorageKey = "moodGardenTheme";
 const guideStorageKey = "moodGardenGuideSeen";
-const appVersion = "2.3.0";
+const appVersion = "2.4.0";
 const maxMoodIconLength = 4;
 const defaultIntensity = 3;
 const minIntensity = 1;
@@ -240,6 +240,12 @@ const weekChart = document.querySelector("#weekChart");
 const moodDistribution = document.querySelector("#moodDistribution");
 const topMood = document.querySelector("#topMood");
 const streakDays = document.querySelector("#streakDays");
+const monthTrendChart = document.querySelector("#monthTrendChart");
+const intensityAnalysis = document.querySelector("#intensityAnalysis");
+const tagAnalysis = document.querySelector("#tagAnalysis");
+const favoriteReview = document.querySelector("#favoriteReview");
+const moodIntensityAnalysis = document.querySelector("#moodIntensityAnalysis");
+const monthlyReview = document.querySelector("#monthlyReview");
 const message = document.querySelector("#message");
 const moodFilter = document.querySelector("#moodFilter");
 const searchInput = document.querySelector("#searchInput");
@@ -1940,6 +1946,7 @@ function renderAnalysis(options = {}) {
   renderMoodDistribution(moodCounts, savedFlowers.length);
   renderTopMood(topMoods, savedFlowers.length);
   renderStreak(streak, savedFlowers.length);
+  renderAdvancedAnalysis(savedFlowers);
   if (options.animate) {
     animateAnalysisUpdate();
   }
@@ -1961,10 +1968,14 @@ function animateAnalysisUpdate() {
 }
 
 function getRecentSevenDays() {
+  return getRecentDays(7);
+}
+
+function getRecentDays(dayCount) {
   const days = [];
   const today = getStartOfDay(new Date());
 
-  for (let index = 6; index >= 0; index -= 1) {
+  for (let index = dayCount - 1; index >= 0; index -= 1) {
     const date = new Date(today);
 
     date.setDate(today.getDate() - index);
@@ -1979,6 +1990,10 @@ function getRecentSevenDays() {
 }
 
 function getRecentSevenDayCounts(flowers, recentDays) {
+  return getRecentDayCounts(flowers, recentDays);
+}
+
+function getRecentDayCounts(flowers, recentDays) {
   return recentDays.map((day) => {
     const count = flowers.filter((flower) => {
       return getFlowerDateKey(flower) === day.key;
@@ -2187,6 +2202,380 @@ function renderStreak(streak, totalCountValue) {
   box.appendChild(big);
   box.appendChild(text);
   streakDays.appendChild(box);
+}
+
+// V2.4 advanced analysis. These views always use all saved records, not filtered results.
+function renderAdvancedAnalysis(records) {
+  renderMonthTrend(getRecentDayCounts(records, getRecentDays(30)), records.length);
+  renderIntensityAnalysis(getIntensityStats(records));
+  renderTagAnalysis(getTopTags(records, 5));
+  renderFavoriteReview(getFavoriteReview(records, 3));
+  renderMoodIntensityAnalysis(getMoodIntensityStats(records));
+  renderMonthlyReview(createMonthlyReview(records));
+}
+
+function renderMonthTrend(monthCounts, totalCountValue) {
+  if (!monthTrendChart) {
+    return;
+  }
+
+  monthTrendChart.innerHTML = "";
+
+  if (totalCountValue === 0) {
+    monthTrendChart.appendChild(createAnalysisEmpty("花园还没有记录。等有了几朵花，最近 30 天的节奏会在这里慢慢长出来。"));
+    return;
+  }
+
+  const maxCount = Math.max(...monthCounts.map((day) => day.count), 1);
+
+  monthCounts.forEach((day, index) => {
+    const item = document.createElement("div");
+    const count = document.createElement("span");
+    const bar = document.createElement("div");
+    const fill = document.createElement("span");
+    const label = document.createElement("span");
+    const height = day.count === 0 ? 0 : Math.max(8, Math.round((day.count / maxCount) * 100));
+    const shouldShowLabel = index === 0 || index === monthCounts.length - 1 || index % 5 === 0;
+
+    item.className = "month-trend-day";
+    item.title = `${day.label}：${day.count} 朵`;
+    count.className = "month-trend-count";
+    count.textContent = day.count;
+    bar.className = "month-trend-bar";
+    fill.className = day.count > 0 ? "month-trend-fill has-record" : "month-trend-fill";
+    fill.style.setProperty("--bar-height", `${height}%`);
+    label.className = shouldShowLabel ? "month-trend-label" : "month-trend-label is-muted";
+    label.textContent = day.label;
+
+    bar.appendChild(fill);
+    item.appendChild(count);
+    item.appendChild(bar);
+    item.appendChild(label);
+    monthTrendChart.appendChild(item);
+  });
+}
+
+function getIntensityStats(records) {
+  const recordsWithIntensity = records.filter((record) => hasFlowerIntensity(record));
+  const distribution = {};
+
+  for (let level = minIntensity; level <= maxIntensity; level += 1) {
+    distribution[level] = 0;
+  }
+
+  recordsWithIntensity.forEach((record) => {
+    distribution[getFlowerIntensity(record)] += 1;
+  });
+
+  if (recordsWithIntensity.length === 0) {
+    return {
+      count: 0,
+      average: 0,
+      highestCount: 0,
+      lowCount: 0,
+      distribution
+    };
+  }
+
+  const sum = recordsWithIntensity.reduce((total, record) => {
+    return total + getFlowerIntensity(record);
+  }, 0);
+
+  return {
+    count: recordsWithIntensity.length,
+    average: Math.round((sum / recordsWithIntensity.length) * 10) / 10,
+    highestCount: distribution[maxIntensity],
+    lowCount: distribution[1] + distribution[2],
+    distribution
+  };
+}
+
+function renderIntensityAnalysis(stats) {
+  if (!intensityAnalysis) {
+    return;
+  }
+
+  intensityAnalysis.innerHTML = "";
+
+  if (stats.count === 0) {
+    intensityAnalysis.appendChild(createAnalysisEmpty("还没有可分析的心情强度。新记录设置强度后，这里会显示更细一点的回顾。"));
+    return;
+  }
+
+  const metrics = document.createElement("div");
+  const scale = document.createElement("div");
+  const maxCount = Math.max(...Object.values(stats.distribution), 1);
+
+  metrics.className = "analysis-metric-grid";
+  metrics.appendChild(createAnalysisMetric("平均强度", stats.average.toFixed(1)));
+  metrics.appendChild(createAnalysisMetric("最高强度", `${stats.highestCount} 条`));
+  metrics.appendChild(createAnalysisMetric("低强度", `${stats.lowCount} 条`));
+  scale.className = "intensity-scale";
+
+  Object.entries(stats.distribution).forEach(([level, count]) => {
+    scale.appendChild(createRatioRow({
+      className: "intensity-row",
+      labelClass: "intensity-label",
+      trackClass: "intensity-track",
+      fillClass: "intensity-fill",
+      countClass: "intensity-count",
+      label: `强度 ${level}`,
+      countText: `${count} 条`,
+      ratio: count === 0 ? 0 : Math.round((count / maxCount) * 100)
+    }));
+  });
+
+  intensityAnalysis.appendChild(metrics);
+  intensityAnalysis.appendChild(scale);
+}
+
+function getTopTags(records, limit) {
+  return getTagCounts(records).slice(0, limit);
+}
+
+function renderTagAnalysis(topTags) {
+  if (!tagAnalysis) {
+    return;
+  }
+
+  tagAnalysis.innerHTML = "";
+
+  if (topTags.length === 0) {
+    tagAnalysis.appendChild(createAnalysisEmpty("还没有常用标签。给记录加上关键词后，标签会在这里慢慢聚拢。"));
+    return;
+  }
+
+  const list = document.createElement("div");
+  const maxCount = Math.max(...topTags.map((item) => item.count), 1);
+
+  list.className = "tag-rank-list";
+  topTags.forEach(({ tag, count }) => {
+    list.appendChild(createRatioRow({
+      className: "tag-rank-item",
+      labelClass: "tag-rank-label",
+      trackClass: "tag-rank-track",
+      fillClass: "tag-rank-fill",
+      countClass: "tag-rank-count",
+      label: `#${tag}`,
+      countText: `${count} 次`,
+      ratio: Math.round((count / maxCount) * 100)
+    }));
+  });
+
+  tagAnalysis.appendChild(list);
+}
+
+function getFavoriteReview(records, limit) {
+  const favoriteRecords = sortFlowersByCreatedAt(records.filter((record) => isFlowerFavorite(record)));
+
+  return {
+    count: favoriteRecords.length,
+    recent: favoriteRecords.slice(0, limit)
+  };
+}
+
+function renderFavoriteReview(review) {
+  if (!favoriteReview) {
+    return;
+  }
+
+  favoriteReview.innerHTML = "";
+
+  if (review.count === 0) {
+    favoriteReview.appendChild(createAnalysisEmpty("还没有收藏记录。遇到想回头看的花，可以把它轻轻收藏起来。"));
+    return;
+  }
+
+  const metrics = document.createElement("div");
+  const list = document.createElement("div");
+
+  metrics.className = "analysis-metric-grid";
+  metrics.appendChild(createAnalysisMetric("收藏记录", `${review.count} 条`));
+  metrics.appendChild(createAnalysisMetric("最近展示", `${review.recent.length} 条`));
+  metrics.appendChild(createAnalysisMetric("保存方式", "本地"));
+  list.className = "favorite-review-list";
+
+  review.recent.forEach((flower) => {
+    const mood = moodMap[flower.mood] || moodMap.happy;
+    const item = document.createElement("div");
+    const title = document.createElement("strong");
+    const text = document.createElement("p");
+
+    item.className = "favorite-review-item";
+    title.textContent = `${getFlowerMoodIcon(flower, mood)} ${mood.name} · ${flower.date || "未知日期"}`;
+    text.textContent = getShortText(flower.note || "没有留下文字", 42);
+
+    item.appendChild(title);
+    item.appendChild(text);
+    list.appendChild(item);
+  });
+
+  favoriteReview.appendChild(metrics);
+  favoriteReview.appendChild(list);
+}
+
+function getMoodIntensityStats(records) {
+  const stats = {};
+
+  Object.keys(moodMap).forEach((moodKey) => {
+    stats[moodKey] = {
+      moodKey,
+      mood: moodMap[moodKey],
+      count: 0,
+      sum: 0,
+      average: 0
+    };
+  });
+
+  records.forEach((record) => {
+    if (!moodMap[record.mood] || !hasFlowerIntensity(record)) {
+      return;
+    }
+
+    stats[record.mood].count += 1;
+    stats[record.mood].sum += getFlowerIntensity(record);
+  });
+
+  const items = Object.values(stats).map((item) => {
+    return {
+      ...item,
+      average: item.count === 0 ? 0 : Math.round((item.sum / item.count) * 10) / 10
+    };
+  });
+  const maxAverage = Math.max(...items.map((item) => item.average), 0);
+  const topItems = maxAverage === 0
+    ? []
+    : items.filter((item) => item.average === maxAverage);
+
+  return { items, topItems };
+}
+
+function renderMoodIntensityAnalysis(stats) {
+  if (!moodIntensityAnalysis) {
+    return;
+  }
+
+  moodIntensityAnalysis.innerHTML = "";
+
+  const validItems = stats.items.filter((item) => item.count > 0);
+
+  if (validItems.length === 0) {
+    moodIntensityAnalysis.appendChild(createAnalysisEmpty("还没有足够的强度记录。记录再多一些后，情绪和强度的关系会更清晰。"));
+    return;
+  }
+
+  const list = document.createElement("div");
+  const note = document.createElement("p");
+
+  list.className = "mood-intensity-list";
+  validItems.forEach((item) => {
+    const iconHtml = getAnimatedIconHtml(item.mood.emoji, item.moodKey, "distribution-icon icon-animate-light");
+
+    list.appendChild(createRatioRow({
+      className: "mood-intensity-row",
+      labelClass: "mood-intensity-label",
+      trackClass: "mood-intensity-track",
+      fillClass: "mood-intensity-fill",
+      countClass: "mood-intensity-count",
+      label: `${iconHtml} ${item.mood.name}`,
+      countText: `${item.average.toFixed(1)} / 5`,
+      ratio: Math.round((item.average / maxIntensity) * 100),
+      labelAsHtml: true
+    }));
+  });
+
+  note.className = "analysis-text";
+  note.textContent = `目前平均强度较高的是 ${getTopMoodText(stats.topItems)}。这只是基于记录的轻量回顾，不代表心理判断。`;
+
+  moodIntensityAnalysis.appendChild(list);
+  moodIntensityAnalysis.appendChild(note);
+}
+
+function getCurrentMonthRecords(records) {
+  const today = new Date();
+  const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+
+  return records.filter((record) => {
+    const dateKey = getFlowerDateKey(record);
+    return dateKey.startsWith(currentMonthKey);
+  });
+}
+
+function createMonthlyReview(records) {
+  const monthRecords = getCurrentMonthRecords(records);
+
+  if (monthRecords.length === 0) {
+    return "这个月花园还比较安静。等你愿意记录时，月度回顾会在这里慢慢长出来。";
+  }
+
+  const moodText = getTopMoodText(getTopMoods(getMoodCounts(monthRecords)));
+  const tagText = getTopTags(monthRecords, 2).map((item) => `#${item.tag}`).join("、") || "还没有明显标签";
+  const intensityStats = getIntensityStats(monthRecords);
+  const favoriteCount = monthRecords.filter((record) => isFlowerFavorite(record)).length;
+  const intensityText = intensityStats.count > 0
+    ? `平均强度约 ${intensityStats.average.toFixed(1)}`
+    : "强度记录还不多";
+
+  return `这个月你记录了 ${monthRecords.length} 朵花，${moodText}出现得比较多。常用标签是 ${tagText}，${intensityText}，其中有 ${favoriteCount} 条被你收藏。它们只是你亲手留下的记录，不做诊断，只帮你回看这段时间的节奏。`;
+}
+
+function renderMonthlyReview(reviewText) {
+  if (!monthlyReview) {
+    return;
+  }
+
+  monthlyReview.textContent = reviewText;
+}
+
+function createAnalysisMetric(label, value) {
+  const item = document.createElement("div");
+  const valueText = document.createElement("strong");
+  const labelText = document.createElement("span");
+
+  item.className = "analysis-metric";
+  valueText.textContent = value;
+  labelText.textContent = label;
+
+  item.appendChild(valueText);
+  item.appendChild(labelText);
+  return item;
+}
+
+function createRatioRow(options) {
+  const row = document.createElement("div");
+  const label = document.createElement("span");
+  const track = document.createElement("div");
+  const fill = document.createElement("span");
+  const count = document.createElement("span");
+
+  row.className = options.className;
+  label.className = options.labelClass;
+  if (options.labelAsHtml) {
+    label.innerHTML = options.label;
+  } else {
+    label.textContent = options.label;
+  }
+  track.className = options.trackClass;
+  fill.className = options.fillClass;
+  fill.style.setProperty("--ratio-width", `${options.ratio}%`);
+  count.className = options.countClass;
+  count.textContent = options.countText;
+
+  track.appendChild(fill);
+  row.appendChild(label);
+  row.appendChild(track);
+  row.appendChild(count);
+  return row;
+}
+
+function getShortText(text, maxLength) {
+  const safeText = String(text || "").trim();
+
+  if (safeText.length <= maxLength) {
+    return safeText;
+  }
+
+  return `${safeText.slice(0, maxLength)}...`;
 }
 
 function createAnalysisEmpty(text) {
