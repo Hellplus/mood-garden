@@ -70,7 +70,7 @@
           <li>所有记录保存在当前浏览器的 localStorage 中，清空花园会删除当前浏览器里的记录。</li>
         </ul>
       </details>
-      <span class="version-badge" aria-label="当前项目版本">v2.0</span>
+      <span class="version-badge" aria-label="当前项目版本">v2.2</span>
     </section>
 
     <div class="entry-layout is-mobile-active" data-mobile-section="record">
@@ -93,6 +93,25 @@
           <span class="label">一句今天的心情</span>
           <textarea id="noteInput" rows="3" maxlength="80" placeholder="例如：今天慢慢来，也很好。"></textarea>
         </label>
+
+        <div class="entry-extra-fields">
+          <label class="field" for="intensitySelect">
+            <span class="label">心情强度</span>
+            <select id="intensitySelect" aria-label="选择心情强度">
+              <option value="1">1 很轻</option>
+              <option value="2">2 有一点</option>
+              <option value="3" selected>3 中等</option>
+              <option value="4">4 明显</option>
+              <option value="5">5 很强</option>
+            </select>
+          </label>
+
+          <label class="field" for="tagsInput">
+            <span class="label">今日关键词</span>
+            <input id="tagsInput" type="text" maxlength="40" placeholder="例如：工作 睡眠 家人">
+            <span class="field-help">可用空格或逗号分隔，最多保存 3 个。</span>
+          </label>
+        </div>
 
         <button class="plant-button" id="plantButton" type="button">种下一朵花</button>
         <p class="hint" id="message" aria-live="polite"></p>
@@ -181,6 +200,11 @@
 
         <button class="reset-filters-button" id="resetFiltersButton" type="button">重置筛选</button>
       </div>
+
+      <div class="view-switcher" role="tablist" aria-label="花园视图切换">
+        <button class="view-switch-button active" type="button" data-garden-view="list" aria-selected="true" aria-controls="flowerList">列表视图</button>
+        <button class="view-switch-button" type="button" data-garden-view="calendar" aria-selected="false" aria-controls="calendarPanel">日历视图</button>
+      </div>
     </section>
 
     <section class="history glass-card" data-mobile-section="garden" aria-labelledby="history-title">
@@ -219,6 +243,38 @@
       </div>
 
       <div class="flower-list" id="flowerList"></div>
+
+      <section class="calendar-panel" id="calendarPanel" aria-labelledby="calendarTitle" hidden>
+        <div class="calendar-toolbar">
+          <div>
+            <p class="section-kicker">Calendar view</p>
+            <h3 id="calendarTitle">本月日历</h3>
+            <p class="calendar-hint">日历按全部记录显示，不受筛选、搜索和排序影响。</p>
+          </div>
+          <div class="calendar-actions" aria-label="日历月份切换">
+            <button class="calendar-nav-button" id="prevMonthButton" type="button">上一月</button>
+            <button class="calendar-nav-button" id="todayMonthButton" type="button">回到今天</button>
+            <button class="calendar-nav-button" id="nextMonthButton" type="button">下一月</button>
+          </div>
+        </div>
+
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>一</span>
+          <span>二</span>
+          <span>三</span>
+          <span>四</span>
+          <span>五</span>
+          <span>六</span>
+          <span>日</span>
+        </div>
+
+        <div class="calendar-grid" id="calendarGrid"></div>
+
+        <section class="calendar-day-detail" aria-labelledby="calendarSelectedTitle">
+          <h3 id="calendarSelectedTitle">这一天的花</h3>
+          <div class="calendar-day-records" id="calendarDayRecords"></div>
+        </section>
+      </section>
     </section>
 
     <section class="mobile-data-panel glass-card" data-mobile-section="data" aria-labelledby="mobile-data-title">
@@ -254,13 +310,13 @@
         </article>
         <article class="app-info-card">
           <span class="app-info-label">关于项目</span>
-          <p>Mood Garden v2.0 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
+          <p>Mood Garden v2.2 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
         </article>
       </div>
     </section>
 
     <footer class="site-footer" data-mobile-section="data" aria-label="项目信息">
-      <strong>Mood Garden 情绪花园 v2.0</strong>
+      <strong>Mood Garden 情绪花园 v2.2</strong>
       <span>数据保存在你的浏览器 localStorage 中。</span>
       <span>仅用于个人记录，不提供心理诊断或医疗建议。</span>
     </footer>
@@ -272,6 +328,61 @@
     <button class="mobile-tab-button" type="button" data-mobile-tab="analysis" aria-controls="mobile-analysis" aria-selected="false">分析</button>
     <button class="mobile-tab-button" type="button" data-mobile-tab="data" aria-controls="mobile-data" aria-selected="false">数据</button>
   </nav>
+
+  <section class="detail-overlay" id="flowerDetailOverlay" aria-labelledby="detailTitle" aria-modal="true" role="dialog" hidden>
+    <div class="detail-panel glass-card">
+      <button class="detail-close-button" id="detailCloseButton" type="button" aria-label="关闭花卡片详情">×</button>
+
+      <div class="detail-header">
+        <span class="detail-mood-icon" id="detailMoodIcon" aria-hidden="true">🌷</span>
+        <div>
+          <p class="section-kicker" id="detailDate">Flower detail</p>
+          <h2 id="detailTitle">这朵花的详情</h2>
+          <p class="detail-mood-text" id="detailMoodText">今日情绪</p>
+        </div>
+      </div>
+
+      <p class="detail-quote" id="detailQuote">今日花语</p>
+
+      <label class="detail-field" for="detailNoteInput">
+        <span class="label">心情文字</span>
+        <textarea id="detailNoteInput" rows="3" maxlength="80"></textarea>
+      </label>
+
+      <div class="detail-form-grid">
+        <label class="detail-field" for="detailIntensitySelect">
+          <span class="label">心情强度</span>
+          <select id="detailIntensitySelect" aria-label="编辑心情强度">
+            <option value="1">1 很轻</option>
+            <option value="2">2 有一点</option>
+            <option value="3">3 中等</option>
+            <option value="4">4 明显</option>
+            <option value="5">5 很强</option>
+          </select>
+        </label>
+
+        <label class="detail-field" for="detailTagsInput">
+          <span class="label">标签 / 今日关键词</span>
+          <input id="detailTagsInput" type="text" maxlength="40" placeholder="最多 3 个关键词">
+        </label>
+      </div>
+
+      <label class="detail-field" for="detailDiaryInput">
+        <span class="label">补充日记</span>
+        <textarea id="detailDiaryInput" rows="4" maxlength="300" placeholder="想多写一点，也可以放在这里。"></textarea>
+      </label>
+
+      <label class="favorite-toggle" for="detailFavoriteInput">
+        <input id="detailFavoriteInput" type="checkbox">
+        <span>收藏这一朵</span>
+      </label>
+
+      <div class="detail-actions">
+        <button class="save-detail-button" id="detailSaveButton" type="button">保存详情</button>
+        <button class="cancel-detail-button" id="detailCancelButton" type="button">取消</button>
+      </div>
+    </div>
+  </section>
 
   <section class="guide-overlay" id="onboardingGuide" aria-labelledby="guideTitle" aria-modal="true" role="dialog" hidden>
     <div class="guide-card glass-card">
