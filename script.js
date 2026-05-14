@@ -204,7 +204,7 @@ const flowerQuoteMap = {
 const storageKey = "moodGardenFlowers";
 const themeStorageKey = "moodGardenTheme";
 const guideStorageKey = "moodGardenGuideSeen";
-const appVersion = "2.0.0";
+const appVersion = "2.1.0";
 const maxMoodIconLength = 4;
 const validThemes = ["light", "dark", "pink"];
 const themeNames = {
@@ -239,6 +239,15 @@ const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
 const resetFiltersButton = document.querySelector("#resetFiltersButton");
 const filterCount = document.querySelector("#filterCount");
+const viewSwitchButtons = document.querySelectorAll("[data-garden-view]");
+const calendarPanel = document.querySelector("#calendarPanel");
+const calendarTitle = document.querySelector("#calendarTitle");
+const calendarGrid = document.querySelector("#calendarGrid");
+const calendarSelectedTitle = document.querySelector("#calendarSelectedTitle");
+const calendarDayRecords = document.querySelector("#calendarDayRecords");
+const prevMonthButton = document.querySelector("#prevMonthButton");
+const nextMonthButton = document.querySelector("#nextMonthButton");
+const todayMonthButton = document.querySelector("#todayMonthButton");
 const themeSelect = document.querySelector("#themeSelect");
 const toast = document.querySelector("#toast");
 const heroMoodIcon = document.querySelector(".journal-flower");
@@ -262,6 +271,7 @@ const defaultBrowseState = {
 };
 
 const mobileTabs = ["record", "garden", "analysis", "data"];
+const gardenViews = ["list", "calendar"];
 
 const backupAppName = "Mood Garden";
 const backupVersion = appVersion;
@@ -270,6 +280,9 @@ let selectedMood = "happy";
 let flowers = loadFlowers();
 let editingFlowerId = "";
 let browseState = { ...defaultBrowseState };
+let gardenView = "list";
+let calendarCurrentDate = getStartOfDay(new Date());
+let selectedCalendarDateKey = getDateKey(new Date());
 let toastTimer = 0;
 let listAnimationTimer = 0;
 let analysisAnimationTimer = 0;
@@ -284,8 +297,9 @@ if (addedMissingData) {
 applyTheme(loadTheme());
 initHeroMoodIcon();
 setActiveMoodButton(selectedMood);
-updateAllViews();
 initMobileTabs();
+initGardenViewSwitcher();
+updateAllViews();
 initOnboardingGuide();
 registerServiceWorker();
 
@@ -356,6 +370,36 @@ sortSelect.addEventListener("change", () => {
 resetFiltersButton.addEventListener("click", () => {
   resetBrowseState();
 });
+
+if (prevMonthButton) {
+  prevMonthButton.addEventListener("click", () => {
+    changeCalendarMonth(-1);
+  });
+}
+
+if (nextMonthButton) {
+  nextMonthButton.addEventListener("click", () => {
+    changeCalendarMonth(1);
+  });
+}
+
+if (todayMonthButton) {
+  todayMonthButton.addEventListener("click", () => {
+    goToTodayInCalendar();
+  });
+}
+
+if (calendarGrid) {
+  calendarGrid.addEventListener("click", (event) => {
+    const dayButton = event.target.closest(".calendar-day");
+
+    if (!dayButton) {
+      return;
+    }
+
+    selectCalendarDay(dayButton.dataset.dateKey);
+  });
+}
 
 themeSelect.addEventListener("change", () => {
   const nextTheme = themeSelect.value;
@@ -664,6 +708,11 @@ function updateAllViews(options = {}) {
   renderAnalysis({
     animate: Boolean(options.animateAnalysis)
   });
+  try {
+    renderCalendar();
+  } catch (error) {
+    console.warn("日历视图刷新失败：", error);
+  }
 }
 
 // UI state helpers.
@@ -804,6 +853,255 @@ function resetBrowseState() {
   editingFlowerId = "";
   renderFlowers({ animateList: true });
   showMessage("已经恢复显示全部花朵。", "success");
+}
+
+// Garden view and calendar helpers.
+function initGardenViewSwitcher() {
+  switchGardenView(gardenView, { silent: true });
+
+  viewSwitchButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      switchGardenView(button.dataset.gardenView);
+    });
+  });
+}
+
+function switchGardenView(viewName, options = {}) {
+  if (!gardenViews.includes(viewName)) {
+    return;
+  }
+
+  gardenView = viewName;
+
+  viewSwitchButtons.forEach((button) => {
+    const isActive = button.dataset.gardenView === gardenView;
+
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+
+  flowerList.hidden = gardenView !== "list";
+
+  if (calendarPanel) {
+    calendarPanel.hidden = gardenView !== "calendar";
+  }
+
+  if (gardenView === "calendar") {
+    renderCalendar();
+  }
+
+  if (!options.silent) {
+    showMessage(gardenView === "calendar" ? "已切换到日历视图。" : "已切换到列表视图。", "info");
+  }
+}
+
+function renderCalendar() {
+  if (!calendarPanel || !calendarGrid) {
+    return;
+  }
+
+  const recordsByDate = groupFlowersByDate(flowers);
+  const monthDays = getCalendarMonthDays(calendarCurrentDate);
+
+  calendarTitle.textContent = formatCalendarMonth(calendarCurrentDate);
+  calendarGrid.innerHTML = "";
+
+  monthDays.forEach((day) => {
+    calendarGrid.appendChild(createCalendarDayButton(day, recordsByDate));
+  });
+
+  renderCalendarDayRecords(selectedCalendarDateKey, recordsByDate);
+}
+
+function getCalendarMonthDays(date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const mondayStartOffset = (firstDay.getDay() + 6) % 7;
+  const calendarStart = new Date(year, month, 1 - mondayStartOffset);
+  const days = [];
+
+  for (let index = 0; index < 42; index += 1) {
+    const dayDate = new Date(calendarStart);
+
+    dayDate.setDate(calendarStart.getDate() + index);
+    days.push({
+      date: dayDate,
+      dateKey: getDateKey(dayDate),
+      dayNumber: dayDate.getDate(),
+      isCurrentMonth: dayDate.getMonth() === month,
+      isToday: getDateKey(dayDate) === getDateKey(new Date()),
+      isSelected: getDateKey(dayDate) === selectedCalendarDateKey
+    });
+  }
+
+  return days;
+}
+
+function groupFlowersByDate(records) {
+  const grouped = {};
+
+  records.forEach((flower) => {
+    const dateKey = getFlowerDateKey(flower);
+
+    if (!dateKey) {
+      return;
+    }
+
+    if (!grouped[dateKey]) {
+      grouped[dateKey] = [];
+    }
+
+    grouped[dateKey].push(flower);
+  });
+
+  Object.keys(grouped).forEach((dateKey) => {
+    grouped[dateKey] = sortFlowersByCreatedAt(grouped[dateKey]);
+  });
+
+  return grouped;
+}
+
+function createCalendarDayButton(day, recordsByDate) {
+  const records = recordsByDate[day.dateKey] || [];
+  const button = document.createElement("button");
+  const dateNumber = document.createElement("span");
+  const count = document.createElement("span");
+  const icons = document.createElement("span");
+
+  button.type = "button";
+  button.dataset.dateKey = day.dateKey;
+  button.className = [
+    "calendar-day",
+    day.isCurrentMonth ? "" : "is-outside-month",
+    day.isToday ? "is-today" : "",
+    day.isSelected ? "is-selected" : "",
+    records.length > 0 ? "has-records" : ""
+  ].filter(Boolean).join(" ");
+  button.setAttribute("aria-label", `${formatCalendarFullDate(day.date)}，${records.length} 条记录`);
+
+  dateNumber.className = "calendar-day-number";
+  dateNumber.textContent = day.dayNumber;
+
+  count.className = "calendar-day-count";
+  count.textContent = records.length > 0 ? `${records.length} 朵` : "";
+
+  icons.className = "calendar-day-icons";
+  icons.innerHTML = getCalendarDayIcons(records);
+
+  button.appendChild(dateNumber);
+  button.appendChild(count);
+  button.appendChild(icons);
+
+  return button;
+}
+
+function renderCalendarDayRecords(dateKey, recordsByDate = groupFlowersByDate(flowers)) {
+  if (!calendarSelectedTitle || !calendarDayRecords) {
+    return;
+  }
+
+  const selectedDate = getDateFromKey(dateKey);
+  const records = recordsByDate[dateKey] || [];
+
+  calendarSelectedTitle.textContent = `${formatCalendarFullDate(selectedDate)}的花`;
+  calendarDayRecords.innerHTML = "";
+
+  if (records.length === 0) {
+    calendarDayRecords.appendChild(createEmptyState(
+      "calendar",
+      "🌱",
+      "这一天还没有花",
+      "如果愿意，可以回到记录区，把这一天的心情轻轻种下。"
+    ));
+    return;
+  }
+
+  records.forEach((flower) => {
+    calendarDayRecords.appendChild(createCalendarRecord(flower));
+  });
+}
+
+function createCalendarRecord(flower) {
+  const moodKey = moodMap[flower.mood] ? flower.mood : "happy";
+  const mood = moodMap[moodKey];
+  const moodIcon = getFlowerMoodIcon(flower, mood);
+  const flowerQuote = flower.flowerQuote || flower.flowerLanguage || mood.copy;
+  const record = document.createElement("article");
+  const top = document.createElement("div");
+  const moodText = document.createElement("span");
+  const dateText = document.createElement("span");
+  const note = document.createElement("p");
+  const quote = document.createElement("p");
+
+  record.className = "calendar-record";
+  top.className = "calendar-record-top";
+  moodText.className = "calendar-record-mood";
+  moodText.innerHTML = `${getAnimatedIconHtml(moodIcon, moodKey, "icon-animate-light")} ${mood.name}`;
+  dateText.className = "calendar-record-date";
+  dateText.textContent = flower.date || "未知日期";
+  note.className = "calendar-record-note";
+  note.textContent = flower.note || "没有留下文字";
+  quote.className = "calendar-record-quote";
+  quote.textContent = flowerQuote;
+
+  top.appendChild(moodText);
+  top.appendChild(dateText);
+  record.appendChild(top);
+  record.appendChild(note);
+  record.appendChild(quote);
+
+  return record;
+}
+
+function getCalendarDayIcons(records) {
+  return records.slice(0, 3).map((flower) => {
+    const moodKey = moodMap[flower.mood] ? flower.mood : "happy";
+    const mood = moodMap[moodKey];
+    const moodIcon = getFlowerMoodIcon(flower, mood);
+
+    return getAnimatedIconHtml(moodIcon, moodKey, "icon-animate-light");
+  }).join("");
+}
+
+function selectCalendarDay(dateKey) {
+  const selectedDate = getDateFromKey(dateKey);
+
+  selectedCalendarDateKey = dateKey;
+  calendarCurrentDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+  renderCalendar();
+}
+
+function changeCalendarMonth(offset) {
+  calendarCurrentDate = new Date(
+    calendarCurrentDate.getFullYear(),
+    calendarCurrentDate.getMonth() + offset,
+    1
+  );
+  selectedCalendarDateKey = getDateKey(calendarCurrentDate);
+  renderCalendar();
+}
+
+function goToTodayInCalendar() {
+  const today = getStartOfDay(new Date());
+
+  calendarCurrentDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  selectedCalendarDateKey = getDateKey(today);
+  renderCalendar();
+}
+
+function sortFlowersByCreatedAt(records) {
+  return [...records].sort((a, b) => {
+    return getFlowerCreatedAt(b, 0) - getFlowerCreatedAt(a, 0);
+  });
+}
+
+function formatCalendarMonth(date) {
+  return `${date.getFullYear()}年${date.getMonth() + 1}月`;
+}
+
+function formatCalendarFullDate(date) {
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
 // Flower list rendering and card actions.
