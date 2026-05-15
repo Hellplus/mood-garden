@@ -683,7 +683,7 @@ p {
   white-space: nowrap;
 }
 
-/* Entry form and overview */
+/* Record area and overview */
 .entry-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
@@ -691,9 +691,9 @@ p {
   margin-top: 24px;
 }
 
+/* Shared panel spacing */
 .panel,
 .stats,
-/* Analysis */
 .analysis-panel,
 .browse-panel,
 .history,
@@ -722,6 +722,7 @@ p {
   display: none;
 }
 
+/* Section headings and small badges */
 .section-heading {
   display: flex;
   align-items: flex-start;
@@ -1952,7 +1953,7 @@ input[type="text"]:focus {
   box-shadow: 0 10px 20px rgba(79, 138, 94, 0.16);
 }
 
-/* Browse tools and data actions */
+/* Garden browse filters and data actions */
 .reset-filters-button,
 .export-button,
 .backup-button,
@@ -2900,7 +2901,7 @@ input[type="text"]:focus {
   color: var(--soft-ink);
 }
 
-/* Animations */
+/* General page animations */
 @keyframes flowerIn {
   from {
     opacity: 0;
@@ -3167,6 +3168,7 @@ input[type="text"]:focus {
   }
 }
 
+/* Icon-specific animations */
 @keyframes iconHappyGlow {
   0%,
   100% {
@@ -3557,6 +3559,7 @@ input[type="text"]:focus {
   }
 }
 
+/* Analysis animations */
 @keyframes analysisFadeUp {
   from {
     opacity: 0;

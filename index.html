@@ -20,6 +20,7 @@
 </head>
 <body>
   <main class="garden">
+    <!-- Hero / mobile record entry -->
     <section class="hero glass-card is-mobile-active" id="mobile-record" data-mobile-section="record" aria-labelledby="page-title">
       <div class="hero-copy">
         <label class="theme-switcher" for="themeSelect">
@@ -55,6 +56,7 @@
       </div>
     </section>
 
+    <!-- Release notes and first-use help -->
     <section class="release-panel glass-card" id="mobile-data" data-mobile-section="data" aria-labelledby="release-title">
       <div class="release-copy">
         <p class="section-kicker">About this garden</p>
@@ -71,9 +73,10 @@
           <li>所有记录保存在当前浏览器的 localStorage 中，清空花园会删除当前浏览器里的记录。</li>
         </ul>
       </details>
-      <span class="version-badge" aria-label="当前项目版本">v2.7</span>
+      <span class="version-badge" aria-label="当前项目版本">v2.8</span>
     </section>
 
+    <!-- Record form and overview stats -->
     <div class="entry-layout is-mobile-active" data-mobile-section="record">
       <section class="panel glass-card entry-panel" aria-labelledby="form-title">
         <p class="section-kicker">Today note</p>
@@ -170,6 +173,7 @@
       </section>
     </div>
 
+    <!-- Data insights -->
     <section class="analysis-panel glass-card" id="mobile-analysis" data-mobile-section="analysis" aria-labelledby="analysis-title">
       <div class="section-heading">
         <div>
@@ -276,6 +280,7 @@
       </div>
     </section>
 
+    <!-- Garden browse tools -->
     <section class="browse-panel glass-card" id="mobile-garden" data-mobile-section="garden" aria-labelledby="browse-title">
       <div class="section-heading">
         <div>
@@ -349,6 +354,7 @@
       </div>
     </section>
 
+    <!-- Flower list and calendar view -->
     <section class="history glass-card" data-mobile-section="garden" aria-labelledby="history-title">
       <div class="section-heading history-heading">
         <div>
@@ -419,6 +425,7 @@
       </section>
     </section>
 
+    <!-- Mobile data management -->
     <section class="mobile-data-panel glass-card" data-mobile-section="data" aria-labelledby="mobile-data-title">
       <div class="section-heading">
         <div>
@@ -452,18 +459,20 @@
         </article>
         <article class="app-info-card">
           <span class="app-info-label">关于项目</span>
-          <p>Mood Garden v2.7 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
+          <p>Mood Garden v2.8 发布在 GitHub Pages：hellplus.github.io/mood-garden/。它只用于轻量记录，不提供心理诊断或医疗建议。</p>
         </article>
       </div>
     </section>
 
+    <!-- Footer / project note -->
     <footer class="site-footer" data-mobile-section="data" aria-label="项目信息">
-      <strong>Mood Garden 情绪花园 v2.7</strong>
+      <strong>Mood Garden 情绪花园 v2.8</strong>
       <span>数据保存在你的浏览器 localStorage 中。</span>
       <span>仅用于个人记录，不提供心理诊断或医疗建议。</span>
     </footer>
   </main>
 
+  <!-- Mobile bottom navigation -->
   <nav class="mobile-tabbar" aria-label="移动端页面导航" role="tablist">
     <button class="mobile-tab-button active" type="button" role="tab" data-mobile-tab="record" aria-controls="mobile-record" aria-selected="true">记录</button>
     <button class="mobile-tab-button" type="button" role="tab" data-mobile-tab="garden" aria-controls="mobile-garden" aria-selected="false">花园</button>
@@ -471,6 +480,7 @@
     <button class="mobile-tab-button" type="button" role="tab" data-mobile-tab="data" aria-controls="mobile-data" aria-selected="false">数据</button>
   </nav>
 
+  <!-- Flower detail dialog -->
   <section class="detail-overlay" id="flowerDetailOverlay" aria-labelledby="detailTitle" aria-modal="true" role="dialog" hidden>
     <div class="detail-panel glass-card">
       <button class="detail-close-button" id="detailCloseButton" type="button" aria-label="关闭花卡片详情">×</button>
@@ -526,6 +536,7 @@
     </div>
   </section>
 
+  <!-- First-use guide dialog -->
   <section class="guide-overlay" id="onboardingGuide" aria-labelledby="guideTitle" aria-describedby="guideDescription" aria-modal="true" role="dialog" hidden>
     <div class="guide-card glass-card">
       <p class="section-kicker">Welcome</p>
@@ -541,6 +552,7 @@
     </div>
   </section>
 
+  <!-- Toast feedback -->
   <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="script.js"></script>
 </body>

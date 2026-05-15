@@ -1,3 +1,6 @@
+// =========================================================
+// App configuration: moods, icons, copy, and small constants
+// =========================================================
 // Mood Garden uses a few plain objects as its tiny design system.
 // When adding a new mood, keep these mood-based configs in sync.
 const moodMap = {
@@ -211,11 +214,11 @@ const promptQuestions = [
   "此刻你想对今天说点什么？"
 ];
 
-// Local storage keys and small safety limits. Keep these keys stable so old gardens still open.
+// Storage keys and small safety limits. Keep these keys stable so old gardens still open.
 const storageKey = "moodGardenFlowers";
 const themeStorageKey = "moodGardenTheme";
 const guideStorageKey = "moodGardenGuideSeen";
-const appVersion = "2.7.0";
+const appVersion = "2.8.0";
 const defaultMood = "happy";
 const emptyNoteText = "这朵花没有留下文字";
 const unknownDateText = "日期未知";
@@ -233,7 +236,9 @@ const themeNames = {
   pink: "治愈粉"
 };
 
-// DOM references.
+// =========================================================
+// DOM references
+// =========================================================
 const moodOptions = document.querySelector("#moodOptions");
 const noteInput = document.querySelector("#noteInput");
 const intensitySelect = document.querySelector("#intensitySelect");
@@ -326,7 +331,9 @@ const detailTagsInput = document.querySelector("#detailTagsInput");
 const detailDiaryInput = document.querySelector("#detailDiaryInput");
 const detailFavoriteInput = document.querySelector("#detailFavoriteInput");
 
-// App state.
+// =========================================================
+// App state
+// =========================================================
 const defaultBrowseState = {
   mood: "all",
   keyword: "",
@@ -366,6 +373,9 @@ if (loadedFlowersNeedSave || addedMissingData) {
   saveFlowers();
 }
 
+// =========================================================
+// Initialization entry
+// =========================================================
 applyTheme(loadTheme());
 initHeroMoodIcon();
 setActiveMoodButton(selectedMood);
@@ -377,6 +387,9 @@ updateAllViews();
 initOnboardingGuide();
 registerServiceWorker();
 
+// =========================================================
+// Event bindings
+// =========================================================
 moodOptions.addEventListener("click", (event) => {
   const button = event.target.closest(".mood-button");
 
@@ -810,6 +823,9 @@ function showToast(text, type = "info") {
   }, 2600);
 }
 
+// =========================================================
+// PWA, theme, mobile navigation, and first-use guide
+// =========================================================
 // First-use guide uses its own localStorage key and never touches flower data.
 function initOnboardingGuide() {
   if (!onboardingGuide || hasSeenOnboardingGuide()) {
@@ -964,7 +980,10 @@ function syncDesktopImportMode() {
   }
 }
 
-// Rendering entry point: use this after data changes so all views stay in sync.
+// =========================================================
+// Rendering entry point and daily experience
+// =========================================================
+// Use this after data changes so all views stay in sync.
 function updateAllViews(options = {}) {
   const currentFlowers = flowers;
 
@@ -984,7 +1003,7 @@ function updateAllViews(options = {}) {
   }
 }
 
-// V2.6 daily experience helpers. These read saved records and do not change record data.
+// Daily experience helpers. These read saved records and do not change record data.
 function renderDailyExperience(savedFlowers = loadFlowers()) {
   renderTodayStatus(savedFlowers);
   renderRecentRecords(savedFlowers);
@@ -1141,7 +1160,9 @@ function renderRecentRecords(savedFlowers) {
   });
 }
 
-// UI state helpers.
+// =========================================================
+// UI state helpers
+// =========================================================
 function setActiveMoodButton(moodKey) {
   document.querySelectorAll(".mood-button").forEach((button) => {
     const isActive = button.dataset.mood === moodKey;
@@ -1151,7 +1172,9 @@ function setActiveMoodButton(moodKey) {
   });
 }
 
-// Local storage helpers for flower records.
+// =========================================================
+// localStorage and data compatibility
+// =========================================================
 function loadFlowers(options = {}) {
   let saved = "";
 
@@ -1288,6 +1311,9 @@ function addMissingFlowerData() {
   return changed;
 }
 
+// =========================================================
+// Detail fields, tags, favorites, and safe value helpers
+// =========================================================
 // Optional detail fields. Older records may not have these fields.
 function getFlowerIntensity(flower) {
   return getSafeIntensity(flower ? flower.intensity : defaultIntensity);
@@ -1451,7 +1477,9 @@ function getSafeFlowerQuote(flower, moodKey = defaultMood) {
   return moodMap[moodKey]?.copy || moodMap[defaultMood].copy;
 }
 
-// Browse, search, and sort helpers.
+// =========================================================
+// Browse, search, sort, tag cloud, and filter state
+// =========================================================
 function getVisibleFlowers() {
   syncActiveTagFilter();
 
@@ -1659,7 +1687,9 @@ function resetBrowseState() {
   showMessage("已经恢复显示全部花朵。", "success");
 }
 
-// Garden view and calendar helpers.
+// =========================================================
+// Garden view and calendar helpers
+// =========================================================
 function initGardenViewSwitcher() {
   switchGardenView(gardenView, { silent: true });
 
@@ -1921,7 +1951,9 @@ function formatCalendarFullDate(date) {
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
-// Flower list rendering and card actions.
+// =========================================================
+// Flower list rendering, detail dialog, and card CRUD
+// =========================================================
 function renderFlowers(options = {}) {
   const visibleFlowers = getVisibleFlowers();
 
@@ -2352,6 +2384,9 @@ function shouldReduceMotion() {
     && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+// =========================================================
+// Statistics and insight analysis
+// =========================================================
 // Overview statistics.
 function renderStats(savedFlowers = loadFlowers()) {
   totalCount.textContent = `共 ${savedFlowers.length} 朵花`;
@@ -2374,7 +2409,7 @@ function renderStats(savedFlowers = loadFlowers()) {
   });
 }
 
-// V1.4 data analysis.
+// Core data analysis.
 function renderAnalysis(options = {}) {
   const savedFlowers = options.records || loadFlowers();
   const recentDays = getRecentSevenDays();
@@ -2768,7 +2803,7 @@ function renderStreak(streak, totalCountValue) {
   streakDays.appendChild(box);
 }
 
-// V2.4/V2.5 advanced analysis. These views use saved records, not filtered results.
+// Advanced and insight analysis. These views use saved records, not filtered results.
 function renderAdvancedAnalysis(records, monthRecords = getCurrentMonthRecords(records)) {
   renderMonthTrend(getRecentDayCounts(records, getRecentDays(30)), records.length);
   renderMoodDistribution(getMoodCounts(monthRecords), monthRecords.length);
@@ -3236,7 +3271,9 @@ function formatShortDate(date) {
   return `${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
-// TXT diary export and JSON backup import/export.
+// =========================================================
+// TXT diary export and JSON backup import/export
+// =========================================================
 function createDiaryText(savedFlowers) {
   const lines = [
     "Mood Garden 情绪花园日记",
@@ -3569,7 +3606,9 @@ function downloadTextFile(text, fileName, fileType = "text/plain;charset=utf-8")
   URL.revokeObjectURL(fileUrl);
 }
 
-// Hero, mood icon, and copy helpers.
+// =========================================================
+// Hero, mood icon, animation, date, and text helpers
+// =========================================================
 function initHeroMoodIcon() {
   const moodKeys = getHeroMoodKeys();
   const randomMood = getRandomItem(moodKeys) || "happy";
