@@ -218,7 +218,7 @@ const promptQuestions = [
 const storageKey = "moodGardenFlowers";
 const themeStorageKey = "moodGardenTheme";
 const guideStorageKey = "moodGardenGuideSeen";
-const appVersion = "2.8.0";
+const appVersion = "2.9.0";
 const defaultMood = "happy";
 const emptyNoteText = "这朵花没有留下文字";
 const unknownDateText = "日期未知";
@@ -442,7 +442,7 @@ plantButton.addEventListener("click", () => {
   }
   showMessage(
     saved
-      ? "已经种下了，一朵新的情绪花正在花园里发光。"
+      ? "已经种下了。可以去花园看看它，也可以继续记录。"
       : "这朵花已经显示出来了，但浏览器暂时没能保存它。",
     saved ? "success" : "error"
   );
@@ -1616,8 +1616,8 @@ function renderActiveFilters() {
 
   activeFilterSummary.classList.toggle("is-empty", activeFilters.length === 0);
   activeFilterSummary.textContent = activeFilters.length > 0
-    ? `当前：${activeFilters.join(" · ")}`
-    : "显示全部记录";
+    ? `当前筛选：${activeFilters.join(" · ")}。点击“重置筛选”可回到全部记录。`
+    : "显示全部记录，没有启用筛选条件。";
 }
 
 function getTagCounts(records) {
@@ -2573,7 +2573,7 @@ function createInsightSummary(records, monthRecords, topMoods) {
   }
 
   const topMoodText = getTopMoodText(topMoods);
-  return `花园里已经有 ${records.length} 朵花，本月记录了 ${monthRecords.length} 朵，${topMoodText}出现得比较多。这里的洞察只基于你的记录做温柔回顾。`;
+  return `花园里有 ${records.length} 朵花，本月记录了 ${monthRecords.length} 朵。${topMoodText}出现得比较多，这里只做记录回顾。`;
 }
 
 function renderInsightOverview(records, monthRecords, topMoods) {
@@ -3092,7 +3092,7 @@ function renderMoodIntensityAnalysis(stats) {
   });
 
   note.className = "analysis-text";
-  note.textContent = `目前平均强度较高的是 ${getTopMoodText(stats.topItems)}。这只是基于记录的轻量回顾，不代表心理判断。`;
+  note.textContent = `平均强度较高的是 ${getTopMoodText(stats.topItems)}。这里只基于记录做轻量回顾。`;
 
   moodIntensityAnalysis.appendChild(list);
   moodIntensityAnalysis.appendChild(note);
@@ -3123,7 +3123,7 @@ function createMonthlyReview(records) {
     ? `平均强度约 ${intensityStats.average.toFixed(1)}`
     : "强度记录还不多";
 
-  return `这个月你记录了 ${monthRecords.length} 朵花，${moodText}出现得比较多。常用标签是 ${tagText}，${intensityText}，其中有 ${favoriteCount} 条被你收藏。它们只是你亲手留下的记录，不做诊断，只帮你回看这段时间的节奏。`;
+  return `这个月记录了 ${monthRecords.length} 朵花。常见情绪是 ${moodText}，常用标签是 ${tagText}，${intensityText}，收藏 ${favoriteCount} 条。这里只帮你回看记录。`;
 }
 
 function renderMonthlyReview(reviewText) {
@@ -3205,7 +3205,7 @@ function createWeeklyReview(weekTotal, weekTopMoods) {
 
   const topMoodText = getTopMoodText(weekTopMoods);
 
-  return `这一周你记录了 ${weekTotal} 朵花，${topMoodText}出现得比较多。你的花园正在慢慢积累属于自己的节奏。`;
+  return `这一周记录了 ${weekTotal} 朵花，${topMoodText}出现得比较多。继续按自己的节奏记录就好。`;
 }
 
 function getTopMoodText(topMoods) {

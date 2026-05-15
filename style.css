@@ -1845,10 +1845,10 @@ input[type="text"]:focus {
 .filter-summary {
   margin: 14px 0 0;
   padding: 10px 12px;
-  border: 1px dashed var(--line-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 14px;
   color: var(--soft-ink);
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.58);
   font-size: 0.9rem;
   font-weight: 800;
   line-height: 1.6;
@@ -1856,6 +1856,8 @@ input[type="text"]:focus {
 
 .filter-summary.is-empty {
   color: var(--muted);
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.34);
 }
 
 .tag-cloud-panel {
@@ -3869,7 +3871,7 @@ body[data-theme="pink"] .mood-excited {
 /* Mobile app navigation */
 @media (max-width: 720px) {
   .garden {
-    padding-bottom: calc(116px + env(safe-area-inset-bottom));
+    padding-bottom: calc(132px + env(safe-area-inset-bottom));
   }
 
   [data-mobile-section] {
@@ -4089,7 +4091,7 @@ body[data-theme="pink"] .mood-excited {
 @media (max-width: 720px) {
   .garden {
     width: min(100% - 24px, 1160px);
-    padding: 24px 0 calc(116px + env(safe-area-inset-bottom));
+    padding: 24px 0 calc(132px + env(safe-area-inset-bottom));
   }
 
   .hero,
@@ -4380,7 +4382,7 @@ body[data-theme="pink"] .mood-excited {
   }
 
   .toast {
-    bottom: calc(96px + env(safe-area-inset-bottom));
+    bottom: calc(112px + env(safe-area-inset-bottom));
     z-index: 45;
     border-radius: 16px;
   }
@@ -4392,12 +4394,12 @@ body[data-theme="pink"] .mood-excited {
   .detail-overlay {
     align-items: end;
     z-index: 60;
-    padding: 16px 12px calc(92px + env(safe-area-inset-bottom));
+    padding: 16px 12px calc(104px + env(safe-area-inset-bottom));
   }
 
   .detail-panel {
     width: 100%;
-    max-height: calc(100vh - 118px - env(safe-area-inset-bottom));
+    max-height: calc(100vh - 132px - env(safe-area-inset-bottom));
     padding: 24px 18px;
     border-radius: 22px;
   }
